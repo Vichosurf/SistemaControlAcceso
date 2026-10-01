@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Círculo Exterior Tech Base -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M54,2 C82.72,2 106,25.28 106,54 C106,82.72 82.72,106 54,106 C25.28,106 2,82.72 2,54 C2,25.28 25.28,2 54,2 Z" />
+
+    <!-- Anillo Circuito Gradiente / Neon Cyan -->
+    <path
+        android:strokeColor="#0EA5E9"
+        android:strokeWidth="3"
+        android:pathData="M54,8 C79.4,8 100,28.6 100,54 C100,79.4 79.4,100 54,100 C28.6,100 8,79.4 8,54 C8,28.6 28.6,8 54,8 Z" />
+
+    <!-- Escudo Cyber OT -->
+    <path
+        android:fillColor="#1E293B"
+        android:strokeColor="#38BDF8"
+        android:strokeWidth="2.5"
+        android:pathData="M54,22 L82,32 C82,62 54,84 54,84 C54,84 26,62 26,32 Z" />
+
+    <!-- Candado Inteligente / Servo (Cuerpo) -->
+    <path
+        android:fillColor="#0284C7"
+        android:pathData="M40,52 L68,52 A4,4 0 0 1 72,56 L72,74 A4,4 0 0 1 68,78 L40,78 A4,4 0 0 1 36,74 L36,56 A4,4 0 0 1 40,52 Z" />
+
+    <!-- Arco del Candado (Cierre de Seguridad OT) -->
+    <path
+        android:strokeColor="#F8FAFC"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M44,52 L44,42 A10,10 0 0 1 64,42 L64,52" />
+
+    <!-- Cerrojo / Sensor Central -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M54,60 A3.5,3.5 0 1 0 54,67 L51.5,73 L56.5,73 Z" />
+
+    <!-- Ondas de Conectividad Inalámbrica (Wireless IoT) -->
+    <path
+        android:strokeColor="#10B981"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M20,44 A16,16 0 0 0 20,64" />
+
+    <path
+        android:strokeColor="#10B981"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M88,44 A16,16 0 0 1 88,64" />
+
+    <!-- Sensor LDR (Destello de Luz en Zona Oscura) -->
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M54,28 L56,33 L61,33 L57,36 L59,41 L54,38 L49,41 L51,36 L47,33 L52,33 Z" />
+
+</vector>

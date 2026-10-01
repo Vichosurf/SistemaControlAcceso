@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- Theme Base -->
+    <color name="bg_dark">#0F172A</color>
+    <color name="bg_surface">#1E293B</color>
+    <color name="primary_cyan">#0EA5E9</color>
+    <color name="primary_cyan_dark">#0284C7</color>
+    <color name="accent_gold">#F59E0B</color>
+
+    <!-- Estados Normal / Alerta OT -->
+    <color name="state_normal_bg">#052E16</color>
+    <color name="state_normal_stroke">#10B981</color>
+    <color name="state_normal_header">#34D399</color>
+    <color name="led_green_on">#10B981</color>
+    <color name="led_green_off">#1E293B</color>
+
+    <color name="state_alert_bg">#450A0A</color>
+    <color name="state_alert_stroke">#EF4444</color>
+    <color name="state_alert_header">#F87171</color>
+    <color name="led_red_on">#EF4444</color>
+    <color name="led_red_off">#1E293B</color>
+
+    <!-- Wireless & Status -->
+    <color name="wireless_connected">#10B981</color>
+    <color name="wireless_disconnected">#EF4444</color>
+    <color name="wireless_connecting">#F59E0B</color>
+
+    <!-- Security & Text -->
+    <color name="text_primary">#F8FAFC</color>
+    <color name="text_secondary">#94A3B8</color>
+    <color name="text_muted">#64748B</color>
+</resources>

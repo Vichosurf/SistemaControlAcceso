@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">SistemaControlAcceso</string>
+    <string name="title_login">Acceso al Sistema OT / IoT</string>
+    <string name="subtitle_login">Control de Acceso en Zonas Oscuras - ISO/IEC 27001</string>
+    <string name="label_username">Usuario</string>
+    <string name="label_password">Contraseña</string>
+    <string name="btn_login">INICIAR SESIÓN</string>
+    <string name="err_invalid_credentials">Credenciales inválidas. Intento registrado en auditoría.</string>
+    <string name="err_account_locked">Cuenta bloqueada temporalmente por sobrepasar intentos fallidos (ISO 27001).</string>
+
+    <string name="tab_monitoreo">MONITOREO</string>
+    <string name="tab_activador">ACTIVADOR / CONTROL</string>
+    <string name="tab_inalambrico">CONEXIÓN INALÁMBRICA</string>
+</resources>
