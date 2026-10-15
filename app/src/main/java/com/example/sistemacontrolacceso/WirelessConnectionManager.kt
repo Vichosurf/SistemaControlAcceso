@@ -7,10 +7,6 @@ import java.util.Random
 /**
  * Motor de Conectividad Inalámbrica (Bluetooth y Wi-Fi Sockets)
  * para el Sistema de Control de Acceso OT/IoT.
- *
- * Cumple con los criterios:
- * - 2.1.2.3 / 2.1.2.4: Conexión inalámbrica eficiente y segura.
- * - 2.1.4.7 / 2.1.4.8: Interconexión entre dispositivos/apps y prueba de estabilidad.
  */
 class WirelessConnectionManager(
     private val onStateChanged: (ConnectionState) -> Unit,

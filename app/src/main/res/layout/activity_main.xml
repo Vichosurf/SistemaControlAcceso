@@ -712,7 +712,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Card Evaluación de Estabilidad (Criterio 2.1.4.8) -->
+            <!-- Card Evaluación de Estabilidad de Red Inalámbrica -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

@@ -22,12 +22,6 @@ import com.google.android.material.card.MaterialCardView
 
 /**
  * Pantalla Principal de Monitoreo, Activador e Interconexión Inalámbrica OT/IoT.
- *
- * Cumple con los criterios:
- * - 2.1.1.2: Pantallas de Monitoreo y Activador con Material Design y elementos interactivos.
- * - 2.1.2.3 & 2.1.2.4: Conexiones inalámbricas eficientes y solución innovadora.
- * - 2.1.3.5 & 2.1.3.6: Medidas de seguridad ISO/IEC 27001 y cumplimiento OT.
- * - 2.1.4.7 & 2.1.4.8: Interconexión entre aplicaciones móviles y prueba de estabilidad.
  */
 class MainActivity : AppCompatActivity() {
 

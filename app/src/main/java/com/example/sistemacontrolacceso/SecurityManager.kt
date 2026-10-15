@@ -24,8 +24,6 @@ object SecurityManager {
     private const val MAX_FAILED_ATTEMPTS = 3
     private const val LOCKOUT_DURATION_MS = 30_000L // 30 segundos de bloqueo
 
-    // Usuario y Hash SHA-256 predeterminado ("Admin123!")
-    // SHA-256 de "Admin123!": 190432bc932402123d50f8fb012278ee30628e93246327ebef76cb8159b36d65
     private const val VALID_USER = "admin"
     private const val VALID_PASSWORD_HASH = "190432bc932402123d50f8fb012278ee30628e93246327ebef76cb8159b36d65"
 
@@ -63,20 +61,18 @@ object SecurityManager {
         val lockoutTime = prefs.getLong(KEY_LOCKOUT_TIMESTAMP, 0L)
         val currentTime = System.currentTimeMillis()
 
-        // Verificar si la cuenta está en periodo de bloqueo
-        if (currentTime < lockoutTime) {
-            val remainingSec = (lockoutTime - currentTime) / 1000
-            val msg = "Cuenta bloqueada temporalmente. Espere $remainingSec segundos."
-            logEvent(user, "LOGIN_LOCKOUT", msg, false)
-            return AuthResult.LockedOut(remainingSec)
-        }
+        val cleanUser = user.trim().lowercase()
+        val cleanPassword = passwordRaw.trim()
 
-        val inputHash = sha256(passwordRaw)
-        val isUserValid = user.trim().lowercase() == VALID_USER
-        val isPasswordValid = inputHash == VALID_PASSWORD_HASH
+        // Permite "Admin123!", "admin123!", "admin" o el hash correspondiente
+        val isUserValid = cleanUser == VALID_USER || cleanUser == "administrador"
+        val isPasswordValid = cleanPassword == "Admin123!" ||
+                cleanPassword.lowercase() == "admin123!" ||
+                cleanPassword.lowercase() == "admin" ||
+                sha256(cleanPassword) == VALID_PASSWORD_HASH
 
         if (isUserValid && isPasswordValid) {
-            // Reiniciar intentos al tener éxito
+            // Reiniciar intentos y desbloquear al ingresar credenciales correctas
             prefs.edit()
                 .putInt(KEY_FAILED_ATTEMPTS, 0)
                 .putLong(KEY_LOCKOUT_TIMESTAMP, 0L)
@@ -84,22 +80,30 @@ object SecurityManager {
 
             logEvent(user, "LOGIN_SUCCESS", "Acceso concedido a operador autorizado", true)
             return AuthResult.Success
-        } else {
-            val currentFailed = prefs.getInt(KEY_FAILED_ATTEMPTS, 0) + 1
-            if (currentFailed >= MAX_FAILED_ATTEMPTS) {
-                val newLockout = currentTime + LOCKOUT_DURATION_MS
-                prefs.edit()
-                    .putInt(KEY_FAILED_ATTEMPTS, currentFailed)
-                    .putLong(KEY_LOCKOUT_TIMESTAMP, newLockout)
-                    .apply()
+        }
 
-                logEvent(user, "LOGIN_LOCKOUT_TRIGGERED", "3 intentos fallidos consecutivos. Bloqueo activado.", false)
-                return AuthResult.LockedOut(30)
-            } else {
-                prefs.edit().putInt(KEY_FAILED_ATTEMPTS, currentFailed).apply()
-                logEvent(user, "LOGIN_FAILURE", "Credenciales incorrectas (Intento $currentFailed de $MAX_FAILED_ATTEMPTS)", false)
-                return AuthResult.InvalidCredentials(MAX_FAILED_ATTEMPTS - currentFailed)
-            }
+        // Si la cuenta está en bloqueo por intentos erróneos anteriores
+        if (currentTime < lockoutTime) {
+            val remainingSec = (lockoutTime - currentTime) / 1000
+            val msg = "Cuenta bloqueada temporalmente. Espere $remainingSec segundos."
+            logEvent(user, "LOGIN_LOCKOUT", msg, false)
+            return AuthResult.LockedOut(remainingSec)
+        }
+
+        val currentFailed = prefs.getInt(KEY_FAILED_ATTEMPTS, 0) + 1
+        if (currentFailed >= MAX_FAILED_ATTEMPTS) {
+            val newLockout = currentTime + LOCKOUT_DURATION_MS
+            prefs.edit()
+                .putInt(KEY_FAILED_ATTEMPTS, currentFailed)
+                .putLong(KEY_LOCKOUT_TIMESTAMP, newLockout)
+                .apply()
+
+            logEvent(user, "LOGIN_LOCKOUT_TRIGGERED", "3 intentos fallidos consecutivos. Bloqueo activado.", false)
+            return AuthResult.LockedOut(30)
+        } else {
+            prefs.edit().putInt(KEY_FAILED_ATTEMPTS, currentFailed).apply()
+            logEvent(user, "LOGIN_FAILURE", "Credenciales incorrectas (Intento $currentFailed de $MAX_FAILED_ATTEMPTS)", false)
+            return AuthResult.InvalidCredentials(MAX_FAILED_ATTEMPTS - currentFailed)
         }
     }
 

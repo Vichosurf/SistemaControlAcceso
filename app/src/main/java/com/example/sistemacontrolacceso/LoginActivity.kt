@@ -13,10 +13,6 @@ import androidx.core.view.WindowInsetsCompat
 
 /**
  * Pantalla de Login con autenticación y medidas de seguridad ISO/IEC 27001.
- *
- * Cumple con el Criterio 2.1.1.1 de la Rúbrica:
- * "Implementa una pantalla de Login que permita el ingreso a la aplicación
- * mediante credenciales (usuario y contraseña) utilizando herramientas de desarrollo móvil."
  */
 class LoginActivity : AppCompatActivity() {
 
