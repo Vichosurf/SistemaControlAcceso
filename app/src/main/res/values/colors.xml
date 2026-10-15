@@ -10,6 +10,10 @@
     <color name="primary_cyan_dark">#0284C7</color>
     <color name="accent_gold">#F59E0B</color>
 
+    <!-- Tonos Azul Login -->
+    <color name="blue_dark">#0A192F</color>
+    <color name="blue_normal">#1D4ED8</color>
+
     <!-- Estados Normal / Alerta OT -->
     <color name="state_normal_bg">#052E16</color>
     <color name="state_normal_stroke">#10B981</color>

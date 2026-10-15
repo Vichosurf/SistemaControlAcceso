@@ -5,7 +5,7 @@
     android:id="@+id/loginRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_app_gradient"
+    android:background="@drawable/bg_login_gradient"
     android:fillViewport="true"
     tools:context=".LoginActivity">
 
@@ -15,6 +15,27 @@
         android:gravity="center"
         android:orientation="vertical"
         android:padding="24dp">
+
+        <!-- Botón Configuración en Login -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:gravity="end"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSettingsLogin"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:text="⚙️ Config"
+                android:textColor="#38BDF8"
+                android:textSize="12sp"
+                app:strokeColor="#0EA5E9" />
+        </LinearLayout>
 
         <!-- Logo del Sistema -->
         <ImageView
@@ -128,7 +149,7 @@
                     android:textColor="#FFFFFF"
                     android:textSize="15sp"
                     android:textStyle="bold"
-                    app:backgroundTint="#0284C7"
+                    app:backgroundTint="@color/blue_normal"
                     app:cornerRadius="10dp" />
 
                 <TextView

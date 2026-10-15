@@ -30,6 +30,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var panelMonitoreo: View
     private lateinit var panelActivador: View
     private lateinit var panelInalambrico: View
+    private lateinit var btnSettings: Button
     private lateinit var btnAuditLogs: Button
     private lateinit var tvOperatorInfo: TextView
 
@@ -85,10 +86,15 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        SettingsManager.applyLocale(this)
+
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
+        val root = findViewById<View>(R.id.main)
+        SettingsManager.applyBackgroundTheme(this, root, isLoginScreen = false)
+
+        ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
@@ -96,7 +102,7 @@ class MainActivity : AppCompatActivity() {
 
         val operatorUser = intent.getStringExtra("OPERATOR_USER") ?: "admin"
 
-        inicializarVistas()
+        inicializarVistas(operatorUser)
         tvOperatorInfo.text = "Operador: $operatorUser | ISO 27001 Activo"
 
         configurarNavegacion()
@@ -108,11 +114,12 @@ class MainActivity : AppCompatActivity() {
         evaluarSistema()
     }
 
-    private fun inicializarVistas() {
+    private fun inicializarVistas(operatorUser: String) {
         rgNavigationTabs = findViewById(R.id.rgNavigationTabs)
         panelMonitoreo = findViewById(R.id.panelMonitoreo)
         panelActivador = findViewById(R.id.panelActivador)
         panelInalambrico = findViewById(R.id.panelInalambrico)
+        btnSettings = findViewById(R.id.btnSettings)
         btnAuditLogs = findViewById(R.id.btnAuditLogs)
         tvOperatorInfo = findViewById(R.id.tvOperatorInfo)
 
@@ -158,6 +165,16 @@ class MainActivity : AppCompatActivity() {
         tvMetricPackets = findViewById(R.id.tvMetricPackets)
         tvMetricRssi = findViewById(R.id.tvMetricRssi)
         tvWirelessFrameLog = findViewById(R.id.tvWirelessFrameLog)
+
+        btnSettings.setOnClickListener {
+            val root = findViewById<View>(R.id.main)
+            SettingsManager.showSettingsDialog(
+                activity = this,
+                rootView = root,
+                isLoginScreen = false,
+                operatorUser = operatorUser
+            )
+        }
 
         btnAuditLogs.setOnClickListener { mostrarDialogoAuditoria() }
     }

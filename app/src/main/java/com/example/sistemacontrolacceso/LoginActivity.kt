@@ -19,14 +19,20 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var etUsername: EditText
     private lateinit var etPassword: EditText
     private lateinit var btnLogin: Button
+    private lateinit var btnSettingsLogin: Button
     private lateinit var tvLoginError: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        SettingsManager.applyLocale(this)
+
         enableEdgeToEdge()
         setContentView(R.layout.activity_login)
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.loginRoot)) { v, insets ->
+        val root = findViewById<View>(R.id.loginRoot)
+        SettingsManager.applyBackgroundTheme(this, root, isLoginScreen = true)
+
+        ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
@@ -35,10 +41,20 @@ class LoginActivity : AppCompatActivity() {
         etUsername = findViewById(R.id.etUsername)
         etPassword = findViewById(R.id.etPassword)
         btnLogin = findViewById(R.id.btnLogin)
+        btnSettingsLogin = findViewById(R.id.btnSettingsLogin)
         tvLoginError = findViewById(R.id.tvLoginError)
 
         btnLogin.setOnClickListener {
             procesarLogin()
+        }
+
+        btnSettingsLogin.setOnClickListener {
+            SettingsManager.showSettingsDialog(
+                activity = this,
+                rootView = root,
+                isLoginScreen = true,
+                onSettingsChanged = { }
+            )
         }
     }
 

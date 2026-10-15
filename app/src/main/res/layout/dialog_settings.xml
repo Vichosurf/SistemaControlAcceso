@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#1E293B"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <!-- Título -->
+    <TextView
+        android:id="@+id/tvSettingsTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="⚙️ Configuración del Sistema"
+        android:textColor="#F8FAFC"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginBottom="16dp"
+        android:background="#334155" />
+
+    <!-- Sección Tema de Fondo -->
+    <TextView
+        android:id="@+id/tvThemeSectionLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="🎨 Fondo / Tema de Apariencia"
+        android:textColor="#38BDF8"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <RadioGroup
+        android:id="@+id/rgTheme"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:orientation="vertical">
+
+        <RadioButton
+            android:id="@+id/rbThemeNight"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🌙 Nocturno (Azul Oscuro Gradiente)"
+            android:textColor="#F8FAFC"
+            android:textSize="14sp" />
+
+        <RadioButton
+            android:id="@+id/rbThemeDay"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="☀️ Diurno (Blanco y Azul Claro)"
+            android:textColor="#F8FAFC"
+            android:textSize="14sp" />
+    </RadioGroup>
+
+    <!-- Sección Idioma -->
+    <TextView
+        android:id="@+id/tvLangSectionLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="🌐 Idioma del Sistema / Language"
+        android:textColor="#38BDF8"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <RadioGroup
+        android:id="@+id/rgLanguage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp"
+        android:orientation="horizontal">
+
+        <RadioButton
+            android:id="@+id/rbLangEs"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="24dp"
+            android:text="🇪🇸 Español"
+            android:textColor="#F8FAFC"
+            android:textSize="14sp" />
+
+        <RadioButton
+            android:id="@+id/rbLangEn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🇬🇧 English"
+            android:textColor="#F8FAFC"
+            android:textSize="14sp" />
+    </RadioGroup>
+
+    <!-- Sección Cerrar Sesión (Si aplica) -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnLogoutInDialog"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginBottom="12dp"
+        android:text="🚪 CERRAR SESIÓN"
+        android:textColor="#EF4444"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:visibility="visible"
+        app:strokeColor="#EF4444" />
+
+    <!-- Botón Aceptar / Cerrar -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnCloseSettings"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="CERRAR"
+        android:textColor="#FFFFFF"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        app:backgroundTint="#0284C7"
+        app:cornerRadius="8dp" />
+
+</LinearLayout>
