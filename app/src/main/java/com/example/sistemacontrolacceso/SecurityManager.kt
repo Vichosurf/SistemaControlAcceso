@@ -8,7 +8,8 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Gestor de Seguridad basado en estándares ISO/IEC 27001 y lineamientos OT (IEC 62443).
+ * Gestor de Seguridad basado en la norma ISO 27400 (Seguridad y Privacidad en IoT),
+ * ISO/IEC 27001 y lineamientos OT (IEC 62443).
  *
  * Implementa:
  * 1. Control de Acceso y Hash SHA-256 para credenciales.
@@ -38,7 +39,7 @@ object SecurityManager {
     private val auditLogs = mutableListOf<AuditEntry>()
 
     init {
-        logEvent("SYSTEM", "INITIALIZE", "Gestor de Seguridad OT ISO 27001 iniciado", true)
+        logEvent("SYSTEM", "INITIALIZE", "Gestor de Seguridad OT/IoT ISO 27400 iniciado", true)
     }
 
     private fun getPrefs(context: Context): SharedPreferences {

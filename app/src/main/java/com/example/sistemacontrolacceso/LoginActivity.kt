@@ -107,10 +107,10 @@ class LoginActivity : AppCompatActivity() {
                - Switch de anulación de emergencia (seguridad OT).
             3. Interconexión Inalámbrica:
                - Soporte para Bluetooth (HC-05/ESP32), Wi-Fi UDP Sockets y Redes Mesh entre dispositivos móviles.
-            4. Seguridad Normativa ISO/IEC 27001:
+            4. Seguridad Normativa ISO 27400 / ISO/IEC 27001:
                - Almacenamiento seguro con Hash SHA-256.
                - Prevención de ataques de fuerza bruta (bloqueo por reintentos).
-               - Registro inmutable de Auditoría OT.
+               - Registro inmutable de Auditoría OT e Integridad de Datos.
             5. Ubicación GPS y Hora en Tiempo Real:
                - Geolocalización de la zona de control y fecha/hora sincronizada.
                - Notificaciones instantáneas del sistema.
@@ -156,7 +156,7 @@ class LoginActivity : AppCompatActivity() {
                 mostrarError("Credenciales incorrectas. Intentos restantes antes de bloqueo: ${result.remainingAttempts}")
             }
             is SecurityManager.AuthResult.LockedOut -> {
-                mostrarError("⚠️ Cuenta bloqueada por seguridad (ISO 27001). Reintente en ${result.remainingSeconds}s.")
+                mostrarError("⚠️ Cuenta bloqueada por seguridad (ISO 27400). Reintente en ${result.remainingSeconds}s.")
             }
         }
     }

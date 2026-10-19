@@ -135,7 +135,7 @@ class MainActivity : AppCompatActivity() {
         val operatorUser = intent.getStringExtra("OPERATOR_USER") ?: "admin"
 
         inicializarVistas(operatorUser)
-        tvOperatorInfo.text = "Operador: $operatorUser | ISO 27001 Activo"
+        tvOperatorInfo.text = "Operador: $operatorUser | ISO 27400 / 27001 Activo"
 
         solicitarPermisosSistema()
         configurarNavegacion()
@@ -322,7 +322,7 @@ class MainActivity : AppCompatActivity() {
                         WirelessConnectionManager.ConnectionState.CONNECTED -> {
                             tvWirelessStatus.text = "Estado: CONECTADO Y SEGURO"
                             tvWirelessStatus.setTextColor(ContextCompat.getColor(this, R.color.wireless_connected))
-                            Toast.makeText(this, "Conexión Inalámbrica Establecida (ISO 27001 Checksum)", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, "Conexión Inalámbrica Establecida (ISO 27400 Checksum)", Toast.LENGTH_SHORT).show()
 
                             NotificationHelper.sendNotification(
                                 context = this,
