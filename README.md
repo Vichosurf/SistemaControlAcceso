@@ -2,7 +2,7 @@
 
 **Prototipo académico de aplicación Android nativa para monitoreo y control de accesos en entornos operacionales.**
 
-**Desarrollador:** Vicente Vega Arroyo · **Formación:** Analista Programador, INACAP Osorno  
+**Desarrolladores:** Vicente Vega Arroyo · Cristobal Jara · **Formación:** Analista Programador, INACAP Osorno  
 **Código:** Kotlin · Android Studio · interfaz Android en XML  
 **Repositorio:** https://github.com/Vichosurf/SistemaControlAcceso
 
