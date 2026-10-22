@@ -773,6 +773,13 @@
                             android:textColor="#F8FAFC" />
 
                         <RadioButton
+                            android:id="@+id/rbMqtt"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="MQTT Broker Pub/Sub (industrial/access/barrier)"
+                            android:textColor="#F8FAFC" />
+
+                        <RadioButton
                             android:id="@+id/rbInterApp"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"

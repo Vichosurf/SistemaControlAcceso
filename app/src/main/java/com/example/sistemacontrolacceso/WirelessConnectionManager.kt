@@ -17,6 +17,7 @@ class WirelessConnectionManager(
     enum class TechType {
         BLUETOOTH_HC05,
         WIFI_UDP_SOCKET,
+        MQTT_BROKER_IOT,
         INTERAPP_MESH
     }
 
@@ -51,7 +52,7 @@ class WirelessConnectionManager(
     private var sentCount = 0
     private var receivedCount = 0
     private var simulatedLatency = 18L
-    private val handler = Handler(Looper.getMainLooper())
+    private val handler by lazy { Handler(Looper.getMainLooper()) }
     private val random = Random()
 
     private var isHeartbeatActive = false
@@ -163,4 +164,16 @@ class WirelessConnectionManager(
 
     fun getCurrentState() = currentState
     fun getCurrentTech() = currentTech
+
+    /**
+     * Retorna la justificación técnica de la tecnología según distancia, consumo de energía y estabilidad (Criterio 2.1.2.5).
+     */
+    fun getTechComparisonInfo(tech: TechType = currentTech): String {
+        return when (tech) {
+            TechType.BLUETOOTH_HC05 -> "Bluetooth HC-05/BLE: Distancia corta (10m), Consumo Mínimo (Muy bajo), Alta Estabilidad local directa sin infraestructura."
+            TechType.WIFI_UDP_SOCKET -> "Wi-Fi UDP Socket: Distancia media (50-100m), Consumo Moderado, Latencia ultra baja para tiempo real."
+            TechType.MQTT_BROKER_IOT -> "MQTT Broker Pub/Sub: Distancia Ilimitada (vía Cloud/LAN), Consumo Optimizado IoT, Máxima Estabilidad con QoS 1 y reconexión."
+            TechType.INTERAPP_MESH -> "Red Mesh Inter-App: Distancia adaptable por saltos, Consumo Distribuido, Alta resiliencia sin punto único de falla."
+        }
+    }
 }

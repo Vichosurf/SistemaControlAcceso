@@ -365,11 +365,14 @@ class MainActivity : AppCompatActivity() {
         btnConnectWireless.setOnClickListener {
             val tech = when (rgWirelessTech.checkedRadioButtonId) {
                 R.id.rbWifiSocket -> WirelessConnectionManager.TechType.WIFI_UDP_SOCKET
+                R.id.rbMqtt -> WirelessConnectionManager.TechType.MQTT_BROKER_IOT
                 R.id.rbInterApp -> WirelessConnectionManager.TechType.INTERAPP_MESH
                 else -> WirelessConnectionManager.TechType.BLUETOOTH_HC05
             }
             tvWirelessTech.text = "Tecnología: ${tech.name}"
             wirelessManager.connect(tech)
+            val infoJustificacion = wirelessManager.getTechComparisonInfo(tech)
+            Toast.makeText(this, infoJustificacion, Toast.LENGTH_LONG).show()
         }
 
         btnDisconnectWireless.setOnClickListener {
