@@ -158,6 +158,6 @@ Aspectos que deben revisarse antes de representar la aplicación como segura:
 
 **Vicente Vega Arroyo**
 **Cristobal Jara**
-Estudiante de Analista Programador, INACAP Osorno.  
+Estudiantes de Analista Programador, INACAP Osorno.  
 Proyecto académico de desarrollo móvil y control operacional.  
 [Perfil de GitHub](https://github.com/Vichosurf)
