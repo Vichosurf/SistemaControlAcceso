@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_monitoreo"
+        android:icon="@drawable/ic_nav_monitoreo"
+        android:title="Monitoreo" />
+
+    <item
+        android:id="@+id/nav_activador"
+        android:icon="@drawable/ic_nav_activador"
+        android:title="Activador" />
+
+    <item
+        android:id="@+id/nav_conexion"
+        android:icon="@drawable/ic_nav_conexion"
+        android:title="Conexión" />
+
+    <item
+        android:id="@+id/nav_auditoria"
+        android:icon="@drawable/ic_nav_auditoria"
+        android:title="Auditoría" />
+
+    <item
+        android:id="@+id/nav_config"
+        android:icon="@drawable/ic_nav_config"
+        android:title="Ajustes" />
+</menu>

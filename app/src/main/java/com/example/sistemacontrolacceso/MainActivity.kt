@@ -26,6 +26,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.card.MaterialCardView
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -38,7 +39,7 @@ import java.util.Locale
 class MainActivity : AppCompatActivity() {
 
     // Navegación y Encabezado
-    private lateinit var rgNavigationTabs: RadioGroup
+    private lateinit var bottomNavigationView: BottomNavigationView
     private lateinit var panelMonitoreo: View
     private lateinit var panelActivador: View
     private lateinit var panelInalambrico: View
@@ -94,6 +95,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvMetricPackets: TextView
     private lateinit var tvMetricRssi: TextView
     private lateinit var tvWirelessFrameLog: TextView
+    private lateinit var etEspIp: EditText
 
     // Gestor Inalámbrico
     private lateinit var wirelessManager: WirelessConnectionManager
@@ -128,7 +130,7 @@ class MainActivity : AppCompatActivity() {
 
         ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0)
             insets
         }
 
@@ -157,7 +159,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun inicializarVistas(operatorUser: String) {
-        rgNavigationTabs = findViewById(R.id.rgNavigationTabs)
+        bottomNavigationView = findViewById(R.id.bottomNavigationView)
         panelMonitoreo = findViewById(R.id.panelMonitoreo)
         panelActivador = findViewById(R.id.panelActivador)
         panelInalambrico = findViewById(R.id.panelInalambrico)
@@ -213,6 +215,7 @@ class MainActivity : AppCompatActivity() {
         tvMetricPackets = findViewById(R.id.tvMetricPackets)
         tvMetricRssi = findViewById(R.id.tvMetricRssi)
         tvWirelessFrameLog = findViewById(R.id.tvWirelessFrameLog)
+        etEspIp = findViewById(R.id.etEspIp)
 
         btnSettings.setOnClickListener {
             val root = findViewById<View>(R.id.main)
@@ -293,23 +296,42 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun configurarNavegacion() {
-        rgNavigationTabs.setOnCheckedChangeListener { _, checkedId ->
-            when (checkedId) {
-                R.id.rbTabMonitoreo -> {
+        bottomNavigationView.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_monitoreo -> {
                     panelMonitoreo.visibility = View.VISIBLE
                     panelActivador.visibility = View.GONE
                     panelInalambrico.visibility = View.GONE
+                    true
                 }
-                R.id.rbTabActivador -> {
+                R.id.nav_activador -> {
                     panelMonitoreo.visibility = View.GONE
                     panelActivador.visibility = View.VISIBLE
                     panelInalambrico.visibility = View.GONE
+                    true
                 }
-                R.id.rbTabInalambrico -> {
+                R.id.nav_conexion -> {
                     panelMonitoreo.visibility = View.GONE
                     panelActivador.visibility = View.GONE
                     panelInalambrico.visibility = View.VISIBLE
+                    true
                 }
+                R.id.nav_auditoria -> {
+                    mostrarDialogoAuditoria()
+                    false
+                }
+                R.id.nav_config -> {
+                    val root = findViewById<View>(R.id.main)
+                    val operatorUser = intent.getStringExtra("OPERATOR_USER") ?: "admin"
+                    SettingsManager.showSettingsDialog(
+                        activity = this,
+                        rootView = root,
+                        isLoginScreen = false,
+                        operatorUser = operatorUser
+                    )
+                    false
+                }
+                else -> false
             }
         }
     }
@@ -362,6 +384,14 @@ class MainActivity : AppCompatActivity() {
             }
         )
 
+        wirelessManager.onHardwareDataReceived = { isAbierta, luz ->
+            runOnUiThread {
+                seekBarLight.progress = luz
+                tvLightValue.text = "$luz"
+                evaluarSistema()
+            }
+        }
+
         btnConnectWireless.setOnClickListener {
             val tech = when (rgWirelessTech.checkedRadioButtonId) {
                 R.id.rbWifiSocket -> WirelessConnectionManager.TechType.WIFI_UDP_SOCKET
@@ -369,8 +399,9 @@ class MainActivity : AppCompatActivity() {
                 R.id.rbInterApp -> WirelessConnectionManager.TechType.INTERAPP_MESH
                 else -> WirelessConnectionManager.TechType.BLUETOOTH_HC05
             }
-            tvWirelessTech.text = "Tecnología: ${tech.name}"
-            wirelessManager.connect(tech)
+            val espIp = etEspIp.text.toString().trim().ifBlank { "192.168.1.100" }
+            tvWirelessTech.text = "Tecnología: ${tech.name} ($espIp)"
+            wirelessManager.connect(tech, espIp)
             val infoJustificacion = wirelessManager.getTechComparisonInfo(tech)
             Toast.makeText(this, infoJustificacion, Toast.LENGTH_LONG).show()
         }
