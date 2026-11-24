@@ -38,6 +38,18 @@
             </intent-filter>
         </activity>
 
+        <!-- Pantalla de Registro de Nuevos Usuarios -->
+        <activity
+            android:name=".RegisterActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- Pantalla de Autenticación Oficial con Google (Google Accounts Web Auth) -->
+        <activity
+            android:name=".GoogleAuthActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
         <!-- Pantalla Principal de Monitoreo y Activador OT -->
         <activity
             android:name=".MainActivity"

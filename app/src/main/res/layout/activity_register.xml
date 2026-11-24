@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/registerRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_login_gradient"
+    android:fillViewport="true"
+    tools:context=".RegisterActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Barra Superior con Hora Actual y Configuración -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvRegisterClock"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="monospace"
+                android:text="🕒 --:--:--"
+                android:textColor="#38BDF8"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSettingsRegister"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:text="⚙️ Config"
+                android:textColor="#38BDF8"
+                android:textSize="12sp"
+                app:strokeColor="#0EA5E9" />
+        </LinearLayout>
+
+        <!-- Logo del Sistema -->
+        <ImageView
+            android:id="@+id/ivRegisterLogo"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_marginBottom="10dp"
+            android:contentDescription="Logo Control de Acceso"
+            android:src="@drawable/ic_logo_control_acceso" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sistema Control de Acceso OT"
+            android:textColor="#F8FAFC"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:layout_marginBottom="16dp"
+            android:text="Registro de Nuevo Operador OT / IoT"
+            android:textColor="#94A3B8"
+            android:textSize="14sp" />
+
+        <!-- Tarjeta Informativa: Seguridad en el Registro -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardAboutRegister"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="#1E293B"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="4dp"
+            app:strokeColor="#0EA5E9"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🔒 Registro Seguro de Operador (ISO/IEC 27001)"
+                    android:textColor="#38BDF8"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Sus credenciales serán cifradas localmente con algoritmo Hash SHA-256 e integradas con las políticas de control de acceso ISO 27400 para protección industrial OT."
+                    android:textColor="#CBD5E1"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Tarjeta del Formulario de Registro -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="#1E293B"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="6dp"
+            app:strokeColor="#334155"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:text="Formulario de Registro de Operador"
+                    android:textColor="#38BDF8"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <!-- Campo Nombre de Usuario Operador -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="14dp"
+                    android:hint="Nuevo Usuario Operador"
+                    app:boxBackgroundColor="#0F172A"
+                    app:boxStrokeColor="#0EA5E9"
+                    app:hintTextColor="#38BDF8">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etRegUsername"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textPersonName"
+                        android:textColor="#F8FAFC" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Campo Correo Electrónico / Gmail -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="14dp"
+                    android:hint="Correo Electrónico (Gmail / Corporativo)"
+                    app:boxBackgroundColor="#0F172A"
+                    app:boxStrokeColor="#0EA5E9"
+                    app:hintTextColor="#38BDF8">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etRegEmail"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textEmailAddress"
+                        android:textColor="#F8FAFC" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Campo Nueva Contraseña -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="14dp"
+                    android:hint="Nueva Contraseña"
+                    app:boxBackgroundColor="#0F172A"
+                    app:boxStrokeColor="#0EA5E9"
+                    app:hintTextColor="#38BDF8"
+                    app:passwordToggleEnabled="true"
+                    app:passwordToggleTint="#94A3B8">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etRegPassword"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textPassword"
+                        android:textColor="#F8FAFC" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Campo Confirmar Contraseña -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:hint="Confirmar Contraseña"
+                    app:boxBackgroundColor="#0F172A"
+                    app:boxStrokeColor="#0EA5E9"
+                    app:hintTextColor="#38BDF8"
+                    app:passwordToggleEnabled="true"
+                    app:passwordToggleTint="#94A3B8">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etRegConfirmPassword"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textPassword"
+                        android:textColor="#F8FAFC" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Mensaje de Error / Estado -->
+                <TextView
+                    android:id="@+id/tvRegisterError"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="14dp"
+                    android:textColor="#EF4444"
+                    android:textSize="13sp"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+
+                <!-- Botón Registrar e Ingresar -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnRegisterSubmit"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:text="CREAR MI CUENTA E INGRESAR"
+                    android:textColor="#FFFFFF"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    app:backgroundTint="#10B981"
+                    app:cornerRadius="10dp" />
+
+                <!-- Separador -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="12dp"
+                    android:text="─── O Opciones de Registro ───"
+                    android:textColor="#64748B"
+                    android:textSize="12sp" />
+
+                <!-- Botón Registrarse con Google -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnGoogleRegister"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_marginBottom="10dp"
+                    android:text="🌐 Registrarse con Google"
+                    android:textColor="#38BDF8"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="10dp"
+                    app:strokeColor="#0EA5E9"
+                    app:strokeWidth="1.5dp" />
+
+                <!-- Botón Volver a Iniciar Sesión -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnBackToLogin"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:text="🔑 ¿Ya tienes una cuenta? Iniciar Sesión"
+                    android:textColor="#38BDF8"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Badge de Seguridad ISO 27001 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🔒 Cifrado SHA-256 e Integridad Normativa ISO/IEC 27001"
+                android:textColor="#10B981"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>
