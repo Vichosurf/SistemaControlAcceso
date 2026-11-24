@@ -17,7 +17,8 @@ import androidx.core.view.WindowInsetsCompat
 
 /**
  * Pantalla de Autenticación Oficial en Google Accounts (Web / OAuth2)
- * Carga directamente https://accounts.google.com para seleccionar o iniciar sesión con Google.
+ * Carga directamente https://accounts.google.com para seleccionar o iniciar sesión con Google
+ * e ingresar directamente a la App (sin abrir Gmail).
  */
 class GoogleAuthActivity : AppCompatActivity() {
 
@@ -25,6 +26,7 @@ class GoogleAuthActivity : AppCompatActivity() {
     private lateinit var pbGoogleAuth: ProgressBar
     private lateinit var btnCancelGoogleAuth: Button
     private lateinit var btnConfirmGoogleAuth: Button
+    private var isAuthCompleted = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -67,11 +69,22 @@ class GoogleAuthActivity : AppCompatActivity() {
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 super.onPageStarted(view, url, favicon)
                 pbGoogleAuth.visibility = View.VISIBLE
+
+                // Si Google finaliza la autenticación, ingresar directamente a la App
+                if (url != null && !isAuthCompleted && (url.contains("myaccount.google.com") || url.contains("CheckCookie") || url.contains("ManageAccount"))) {
+                    isAuthCompleted = true
+                    completarAutenticacionGoogle()
+                }
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 pbGoogleAuth.visibility = View.GONE
+
+                if (url != null && !isAuthCompleted && (url.contains("myaccount.google.com") || url.contains("CheckCookie") || url.contains("ManageAccount"))) {
+                    isAuthCompleted = true
+                    completarAutenticacionGoogle()
+                }
             }
         }
 
@@ -83,8 +96,8 @@ class GoogleAuthActivity : AppCompatActivity() {
             }
         }
 
-        // Cargar la página oficial de selección e inicio de sesión de Cuentas de Google
-        wvGoogleAuth.loadUrl("https://accounts.google.com/ServiceLogin?service=mail&continue=https://mail.google.com/mail/")
+        // Cargar inicio de sesión oficial de Cuentas de Google sin redirección a Gmail
+        wvGoogleAuth.loadUrl("https://accounts.google.com/ServiceLogin")
     }
 
     private fun completarAutenticacionGoogle() {
