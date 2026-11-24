@@ -43,17 +43,10 @@
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnConfirmGoogleAuth"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
-                android:text="Ingresar ➔"
-                android:textColor="#FFFFFF"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                app:backgroundTint="#0EA5E9" />
+            <View
+                android:layout_width="60dp"
+                android:layout_height="1dp" />
+
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 

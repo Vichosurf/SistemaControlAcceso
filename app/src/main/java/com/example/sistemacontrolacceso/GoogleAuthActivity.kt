@@ -18,14 +18,13 @@ import androidx.core.view.WindowInsetsCompat
 /**
  * Pantalla de Autenticación Oficial en Google Accounts (Web / OAuth2)
  * Carga directamente https://accounts.google.com para seleccionar o iniciar sesión con Google
- * e ingresar directamente a la App (sin abrir Gmail).
+ * e ingresa de forma automática al completar la autenticación (sin botón manual).
  */
 class GoogleAuthActivity : AppCompatActivity() {
 
     private lateinit var wvGoogleAuth: WebView
     private lateinit var pbGoogleAuth: ProgressBar
     private lateinit var btnCancelGoogleAuth: Button
-    private lateinit var btnConfirmGoogleAuth: Button
     private var isAuthCompleted = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,16 +44,11 @@ class GoogleAuthActivity : AppCompatActivity() {
         wvGoogleAuth = findViewById(R.id.wvGoogleAuth)
         pbGoogleAuth = findViewById(R.id.pbGoogleAuth)
         btnCancelGoogleAuth = findViewById(R.id.btnCancelGoogleAuth)
-        btnConfirmGoogleAuth = findViewById(R.id.btnConfirmGoogleAuth)
 
         configurarWebView()
 
         btnCancelGoogleAuth.setOnClickListener {
             finish()
-        }
-
-        btnConfirmGoogleAuth.setOnClickListener {
-            completarAutenticacionGoogle()
         }
     }
 
@@ -70,21 +64,14 @@ class GoogleAuthActivity : AppCompatActivity() {
                 super.onPageStarted(view, url, favicon)
                 pbGoogleAuth.visibility = View.VISIBLE
 
-                // Si Google finaliza la autenticación, ingresar directamente a la App
-                if (url != null && !isAuthCompleted && (url.contains("myaccount.google.com") || url.contains("CheckCookie") || url.contains("ManageAccount"))) {
-                    isAuthCompleted = true
-                    completarAutenticacionGoogle()
-                }
+                verificarAutenticacionExitosas(url)
             }
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 pbGoogleAuth.visibility = View.GONE
 
-                if (url != null && !isAuthCompleted && (url.contains("myaccount.google.com") || url.contains("CheckCookie") || url.contains("ManageAccount"))) {
-                    isAuthCompleted = true
-                    completarAutenticacionGoogle()
-                }
+                verificarAutenticacionExitosas(url)
             }
         }
 
@@ -96,8 +83,23 @@ class GoogleAuthActivity : AppCompatActivity() {
             }
         }
 
-        // Cargar inicio de sesión oficial de Cuentas de Google sin redirección a Gmail
+        // Cargar la página oficial de Cuentas de Google (accounts.google.com)
         wvGoogleAuth.loadUrl("https://accounts.google.com/ServiceLogin")
+    }
+
+    private fun verificarAutenticacionExitosas(url: String?) {
+        if (url != null && !isAuthCompleted) {
+            val isSuccessTarget = url.contains("myaccount.google.com") ||
+                    url.contains("CheckCookie") ||
+                    url.contains("ManageAccount") ||
+                    url.contains("speedbump") ||
+                    url.contains("oauth")
+
+            if (isSuccessTarget) {
+                isAuthCompleted = true
+                completarAutenticacionGoogle()
+            }
+        }
     }
 
     private fun completarAutenticacionGoogle() {
@@ -107,7 +109,7 @@ class GoogleAuthActivity : AppCompatActivity() {
         SecurityManager.logEvent(
             googleUser,
             "GOOGLE_OAUTH_SUCCESS",
-            "Autenticación exitosa mediante servidor oficial de Google ($currentUrl)",
+            "Autenticación automatizada exitosa mediante servidor de Google ($currentUrl)",
             true
         )
 
