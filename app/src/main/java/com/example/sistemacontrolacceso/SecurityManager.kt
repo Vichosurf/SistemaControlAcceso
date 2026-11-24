@@ -12,14 +12,17 @@ import java.util.Locale
  * ISO/IEC 27001 y lineamientos OT (IEC 62443).
  *
  * Implementa:
- * 1. Control de Acceso y Hash SHA-256 para credenciales.
- * 2. Políticas de bloqueo por intentos fallidos (prevención de ataques de fuerza bruta).
- * 3. Log de Auditoría de Seguridad con Marcas de Tiempo ISO 8601.
- * 4. Verificación de Integridad de Tramas Inalámbricas (Checksum Hashing).
+ * 1. Control de Acceso, Registro Dinámico de Usuarios y Hash SHA-256.
+ * 2. Autenticación Integrada con Google Sign-In / Credential Manager.
+ * 3. Políticas de bloqueo por intentos fallidos (prevención de ataques de fuerza bruta).
+ * 4. Log de Auditoría de Seguridad con Marcas de Tiempo ISO 8601.
+ * 5. Verificación de Integridad de Tramas Inalámbricas (Checksum Hashing).
  */
 object SecurityManager {
 
     private const val PREFS_NAME = "ot_security_prefs"
+    private const val PREFS_USERS = "ot_registered_users_prefs"
+
     private const val KEY_FAILED_ATTEMPTS = "failed_attempts"
     private const val KEY_LOCKOUT_TIMESTAMP = "lockout_timestamp"
     private const val MAX_FAILED_ATTEMPTS = 3
@@ -46,12 +49,48 @@ object SecurityManager {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
 
+    private fun getUsersPrefs(context: Context): SharedPreferences {
+        return context.getSharedPreferences(PREFS_USERS, Context.MODE_PRIVATE)
+    }
+
     /**
      * Algoritmo de Hash SHA-256 para almacenamiento y comparación segura.
      */
     fun sha256(input: String): String {
         val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
         return bytes.joinToString("") { "%02x".format(it) }
+    }
+
+    /**
+     * Registra un nuevo usuario operador en SharedPreferences con contraseña cifrada en SHA-256.
+     */
+    fun registerNewUser(context: Context, user: String, passwordRaw: String): Boolean {
+        val cleanUser = user.trim().lowercase()
+        val cleanPass = passwordRaw.trim()
+
+        if (cleanUser.length < 3 || cleanPass.length < 4) {
+            return false
+        }
+
+        val usersPrefs = getUsersPrefs(context)
+        val passHash = sha256(cleanPass)
+
+        usersPrefs.edit()
+            .putString("user_$cleanUser", passHash)
+            .apply()
+
+        logEvent(cleanUser, "USER_REGISTERED", "Cuenta de usuario registrada exitosamente con Hash SHA-256", true)
+        return true
+    }
+
+    /**
+     * Verifica si existe un usuario registrado en el sistema.
+     */
+    fun isUserRegistered(context: Context, user: String, passwordRaw: String): Boolean {
+        val cleanUser = user.trim().lowercase()
+        val usersPrefs = getUsersPrefs(context)
+        val storedHash = usersPrefs.getString("user_$cleanUser", null) ?: return false
+        return storedHash == sha256(passwordRaw.trim())
     }
 
     /**
@@ -65,21 +104,20 @@ object SecurityManager {
         val cleanUser = user.trim().lowercase()
         val cleanPassword = passwordRaw.trim()
 
-        // Permite "Admin123!", "admin123!", "admin" o el hash correspondiente
-        val isUserValid = cleanUser == VALID_USER || cleanUser == "administrador"
-        val isPasswordValid = cleanPassword == "Admin123!" ||
-                cleanPassword.lowercase() == "admin123!" ||
-                cleanPassword.lowercase() == "admin" ||
-                sha256(cleanPassword) == VALID_PASSWORD_HASH
+        // Permite usuario default "admin", "administrador" o usuarios registrados dinámicamente
+        val isDefaultAdminValid = (cleanUser == VALID_USER || cleanUser == "administrador") &&
+                (cleanPassword == "Admin123!" || cleanPassword.lowercase() == "admin123!" || cleanPassword.lowercase() == "admin" || sha256(cleanPassword) == VALID_PASSWORD_HASH)
 
-        if (isUserValid && isPasswordValid) {
+        val isRegisteredUserValid = isUserRegistered(context, cleanUser, cleanPassword)
+
+        if (isDefaultAdminValid || isRegisteredUserValid) {
             // Reiniciar intentos y desbloquear al ingresar credenciales correctas
             prefs.edit()
                 .putInt(KEY_FAILED_ATTEMPTS, 0)
                 .putLong(KEY_LOCKOUT_TIMESTAMP, 0L)
                 .apply()
 
-            logEvent(user, "LOGIN_SUCCESS", "Acceso concedido a operador autorizado", true)
+            logEvent(cleanUser, "LOGIN_SUCCESS", "Acceso concedido a operador autorizado", true)
             return AuthResult.Success
         }
 

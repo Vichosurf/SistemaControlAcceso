@@ -217,11 +217,48 @@
                     app:backgroundTint="@color/blue_normal"
                     app:cornerRadius="10dp" />
 
+                <!-- Separador -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_horizontal"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="12dp"
+                    android:text="─── O Opciones de Autenticación ───"
+                    android:textColor="#64748B"
+                    android:textSize="12sp" />
+
+                <!-- Botón Continuar con Google -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnGoogleLogin"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_marginBottom="10dp"
+                    android:text="🌐 Continuar con Google"
+                    android:textColor="#38BDF8"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="10dp"
+                    app:strokeColor="#0EA5E9"
+                    app:strokeWidth="1.5dp" />
+
+                <!-- Botón Crear Cuenta / Registro -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnRegisterAccount"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:text="✨ ¿No tienes cuenta? Crear una cuenta"
+                    android:textColor="#10B981"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="8dp"
                     android:text="Credenciales de Prueba: admin / Admin123!"
                     android:textColor="#64748B"
                     android:textSize="12sp" />
