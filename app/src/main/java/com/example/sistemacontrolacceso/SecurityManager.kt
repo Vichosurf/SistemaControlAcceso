@@ -54,6 +54,24 @@ object SecurityManager {
     }
 
     /**
+     * Limpia la sesión activa y destruye cookies/tokens al cerrar sesión.
+     */
+    fun clearActiveSession(context: Context) {
+        val prefs = getPrefs(context)
+        prefs.edit()
+            .remove("active_user")
+            .remove("is_logged_in")
+            .apply()
+
+        try {
+            android.webkit.CookieManager.getInstance().removeAllCookies(null)
+            android.webkit.CookieManager.getInstance().flush()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    /**
      * Algoritmo de Hash SHA-256 para almacenamiento y comparación segura.
      */
     fun sha256(input: String): String {

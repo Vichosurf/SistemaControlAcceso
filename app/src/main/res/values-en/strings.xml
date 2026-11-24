@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AccessControlSystem</string>
+    <string name="title_login">OT / IoT System Access</string>
+    <string name="subtitle_login">Access Control in Dark Environments - ISO/IEC 27001</string>
+    <string name="label_username">Operator Username</string>
+    <string name="label_password">Password</string>
+    <string name="btn_login">LOG IN</string>
+    <string name="err_invalid_credentials">Invalid credentials. Attempt logged in audit trail.</string>
+    <string name="err_account_locked">Account temporarily locked due to failed attempts (ISO 27001).</string>
+
+    <string name="tab_monitoreo">MONITORING</string>
+    <string name="tab_activador">ACTIVATOR / CONTROL</string>
+    <string name="tab_inalambrico">WIRELESS CONNECTION</string>
+
+    <!-- Additional English strings -->
+    <string name="btn_google_login">🌐 Continue with Google</string>
+    <string name="btn_create_account">✨ Don\'t have an account? Sign Up</string>
+    <string name="btn_about_app">View Details</string>
+    <string name="btn_settings">⚙️ Config</string>
+    <string name="title_register">Operator Account Registration</string>
+    <string name="btn_register_submit">CREATE MY ACCOUNT &amp; LOG IN</string>
+    <string name="btn_back_login">🔑 Already have an account? Log In</string>
+</resources>

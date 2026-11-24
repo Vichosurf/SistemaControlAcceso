@@ -176,7 +176,8 @@ object SettingsManager {
             .setTitle("🚪 $title")
             .setMessage(message)
             .setPositiveButton(posBtn) { _, _ ->
-                SecurityManager.logEvent(user, "LOGOUT", "Cierre de sesión de operador realizado", true)
+                SecurityManager.clearActiveSession(activity)
+                SecurityManager.logEvent(user, "LOGOUT", "Cierre de sesión de operador realizado. Credenciales revocadas.", true)
                 onLogout?.invoke() ?: run {
                     val intent = Intent(activity, LoginActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

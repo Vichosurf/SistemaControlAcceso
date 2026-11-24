@@ -99,6 +99,11 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        SettingsManager.applyLocale(this)
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         clockHandler.removeCallbacks(clockRunnable)

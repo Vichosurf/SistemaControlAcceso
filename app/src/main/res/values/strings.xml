@@ -1,8 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">SistemaControlAcceso</string>
     <string name="title_login">Acceso al Sistema OT / IoT</string>
     <string name="subtitle_login">Control de Acceso en Zonas Oscuras - ISO/IEC 27001</string>
-    <string name="label_username">Usuario</string>
+    <string name="label_username">Usuario Operador</string>
     <string name="label_password">Contraseña</string>
     <string name="btn_login">INICIAR SESIÓN</string>
     <string name="err_invalid_credentials">Credenciales inválidas. Intento registrado en auditoría.</string>
@@ -11,4 +12,13 @@
     <string name="tab_monitoreo">MONITOREO</string>
     <string name="tab_activador">ACTIVADOR / CONTROL</string>
     <string name="tab_inalambrico">CONEXIÓN INALÁMBRICA</string>
+
+    <!-- Additional Spanish strings -->
+    <string name="btn_google_login">🌐 Continuar con Google</string>
+    <string name="btn_create_account">✨ ¿No tienes cuenta? Crear una cuenta</string>
+    <string name="btn_about_app">Ver Detalle</string>
+    <string name="btn_settings">⚙️ Config</string>
+    <string name="title_register">Registro de Nuevo Operador</string>
+    <string name="btn_register_submit">CREAR MI CUENTA E INGRESAR</string>
+    <string name="btn_back_login">🔑 ¿Ya tienes una cuenta? Iniciar Sesión</string>
 </resources>
