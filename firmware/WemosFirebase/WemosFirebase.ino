@@ -1,11 +1,19 @@
+/*
+ * SistemaControlAcceso - Wemos D1 mini / ESP8266 (puente Wi-Fi)
+ * El Arduino Uno lee sensores y gobierna servo/LEDs.
+ * El Wemos intercambia Firebase Realtime Database <-> UART hacia el Uno.
+ *
+ * UART: Wemos D5 (RX) <- divisor desde Uno D11 (TX 5V)
+ *       Wemos D6 (TX) -> Uno D10 (RX), GND comun.
+ *       SoftwareSerial 9600 baudios.
+ */
 #include <ESP8266WiFi.h>
+#include <SoftwareSerial.h>
 #include <Firebase_ESP_Client.h>
-#include <Servo.h>
 #include <Hash.h>
 #include "addons/TokenHelper.h"
 #include "addons/RTDBHelper.h"
 
-// Completar localmente. Nunca subir credenciales reales a Git.
 #define WIFI_SSID "TU_WIFI"
 #define WIFI_PASSWORD "TU_CLAVE_WIFI"
 #define API_KEY "TU_FIREBASE_WEB_API_KEY"
@@ -13,54 +21,76 @@
 #define DEVICE_EMAIL "wemos-device@tu-dominio"
 #define DEVICE_PASSWORD "CLAVE_DE_CUENTA_DE_DISPOSITIVO"
 
-#define TRIG_PIN D1
-#define ECHO_PIN D2
-#define SERVO_PIN D5
-#define LED_RED D6
-#define LED_GREEN D7
-#define LDR_PIN A0
-#define MAX_DISTANCE_CM 300
+#define UNO_RX D5
+#define UNO_TX D6
+SoftwareSerial unoSerial(UNO_RX, UNO_TX); // RX, TX
 
 FirebaseData fbdo;
 FirebaseAuth auth;
 FirebaseConfig config;
-Servo barrierServo;
-unsigned long lastSensorPublish = 0;
 unsigned long lastCommandPoll = 0;
-long lastSequence = 0;
+long lastCommandSequence = 0;
+String uartLine;
 
-String frameChecksum(long seq, const String &command, const String &payload, unsigned long long timestamp) {
+String makeChecksum(long seq, const String &command, const String &payload, unsigned long long timestamp) {
   String raw = String(seq) + "|" + command + "|" + payload + "|" + String(timestamp);
   String digest = sha256(raw + "_OT_KEY_2026");
-  digest.toUpperCase();
-  return digest.substring(0, 16);
+  return digest.substring(0, 8).toUpperCase();
 }
 
-void publishAccessState(int angle) {
-  FirebaseJson state;
-  state.set("barreraAbierta", angle == 90);
-  state.set("anguloServo", angle);
-  state.set("actualizadoEn", (long long)millis());
-  Firebase.RTDB.setJSON(&fbdo, "/acceso", &state);
+String valueFromPayload(const String &payload, const String &key, const String &fallback) {
+  const String token = key + "=";
+  int start = payload.indexOf(token);
+  if (start < 0) return fallback;
+  start += token.length();
+  int end = payload.indexOf(';', start);
+  if (end < 0) end = payload.length();
+  return payload.substring(start, end);
 }
 
-void applyCommand(const String &command, const String &payload) {
-  if (command != "SET_BARRIER") return;
-  const int angle = payload.indexOf("angulo=90") >= 0 ? 90 : 0;
-  barrierServo.write(angle);
-  digitalWrite(LED_RED, angle == 0 ? HIGH : LOW);
-  digitalWrite(LED_GREEN, angle == 90 ? HIGH : LOW);
-  publishAccessState(angle);
+void publishTelemetry(const String &line) {
+  // S|telemetrySeq|distance|light|angle|mode|emergency|unoMillis
+  long seq; int distance, light, angle, emergency;
+  char mode[12] = "AUTO";
+  unsigned long unoMillis;
+  if (sscanf(line.c_str(), "S|%ld|%d|%d|%d|%11[^|]|%d|%lu",
+      &seq, &distance, &light, &angle, mode, &emergency, &unoMillis) != 7) return;
+
+  const int rssi = WiFi.RSSI();
+  FirebaseJson sensors;
+  sensors.set("distancia", distance);
+  sensors.set("luz", light);
+  sensors.set("anguloServo", angle);
+  sensors.set("modo", mode);
+  sensors.set("emergencia", emergency == 1);
+  sensors.set("rssi", rssi);
+  sensors.set("secuenciaArduino", seq);
+  sensors.set("actualizadoEn", (long long)millis());
+
+  if (!Firebase.RTDB.setJSON(&fbdo, "/sensores", &sensors)) {
+    Serial.printf("Error publicando sensores: %s\n", fbdo.errorReason().c_str());
+    return;
+  }
+
+  FirebaseJson access;
+  access.set("barreraAbierta", angle == 90);
+  access.set("anguloServo", angle);
+  access.set("modo", mode);
+  access.set("emergencia", emergency == 1);
+  access.set("confirmadoArduino", true);
+  access.set("secuenciaArduino", seq);
+  access.set("actualizadoEn", (long long)millis());
+  Firebase.RTDB.setJSON(&fbdo, "/acceso", &access);
 }
 
-void pollCommand() {
+void pollAndroidCommand() {
   if (!Firebase.RTDB.getJSON(&fbdo, "/comandos/ultimo")) return;
   FirebaseJson *json = fbdo.to<FirebaseJson *>();
   FirebaseJsonData value;
 
   json->get(value, "seq");
   long seq = value.intValue;
-  if (seq <= lastSequence) return;
+  if (seq <= lastCommandSequence) return;
 
   json->get(value, "comando");
   String command = value.stringValue;
@@ -69,55 +99,42 @@ void pollCommand() {
   json->get(value, "timestamp");
   unsigned long long timestamp = (unsigned long long)value.doubleValue;
   json->get(value, "checksum");
-  String received = value.stringValue;
+  String receivedChecksum = value.stringValue;
 
-  if (!received.equalsIgnoreCase(frameChecksum(seq, command, payload, timestamp))) {
-    Serial.println("Comando rechazado: checksum incorrecto");
+  if (receivedChecksum != makeChecksum(seq, command, payload, timestamp)) {
+    Serial.println("Orden ignorada: checksum incorrecto.");
+    return;
+  }
+  if (command != "SET_CONFIG") {
+    Serial.println("Orden ignorada: comando no soportado.");
     return;
   }
 
-  applyCommand(command, payload);
-  lastSequence = seq;
-  Serial.printf("Comando aceptado #%ld: %s\n", seq, command.c_str());
-}
+  String mode = valueFromPayload(payload, "mode", "AUTO");
+  String distance = valueFromPayload(payload, "distanceThreshold", "20");
+  String light = valueFromPayload(payload, "lightThreshold", "400");
+  String emergency = valueFromPayload(payload, "emergency", "0");
 
-void publishSensors() {
-  digitalWrite(TRIG_PIN, LOW);
-  delayMicroseconds(2);
-  digitalWrite(TRIG_PIN, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(TRIG_PIN, LOW);
-  unsigned long duration = pulseIn(ECHO_PIN, HIGH, 30000UL);
-  int distance = duration == 0 ? MAX_DISTANCE_CM : (int)(duration * 0.0343 / 2.0);
-  int light = analogRead(LDR_PIN);
-
-  FirebaseJson sensors;
-  sensors.set("distancia", distance);
-  sensors.set("luz", light);
-  sensors.set("actualizadoEn", (long long)millis());
-  if (!Firebase.RTDB.setJSON(&fbdo, "/sensores", &sensors)) {
-    Serial.printf("Error publicando sensores: %s\n", fbdo.errorReason().c_str());
-  }
+  String uartCommand = "C|" + String(seq) + "|SET_CONFIG|" + mode + "|" +
+      distance + "|" + light + "|" + emergency;
+  unoSerial.println(uartCommand);
+  lastCommandSequence = seq;
+  Serial.println("Orden Firebase enviada al Arduino por UART: " + uartCommand);
 }
 
 void setup() {
   Serial.begin(115200);
-  pinMode(TRIG_PIN, OUTPUT);
-  pinMode(ECHO_PIN, INPUT);
-  pinMode(LED_RED, OUTPUT);
-  pinMode(LED_GREEN, OUTPUT);
-  barrierServo.attach(SERVO_PIN);
-  barrierServo.write(0);
-  digitalWrite(LED_RED, HIGH);
-  digitalWrite(LED_GREEN, LOW);
+  unoSerial.begin(9600);
+  uartLine.reserve(100);
 
+  WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("Conectando Wi-Fi");
   while (WiFi.status() != WL_CONNECTED) {
     delay(300);
     Serial.print(".");
   }
-  Serial.println("\nWi-Fi conectado");
+  Serial.println("\nWi-Fi conectado: " + WiFi.localIP().toString());
 
   config.api_key = API_KEY;
   config.database_url = DATABASE_URL;
@@ -129,15 +146,22 @@ void setup() {
 }
 
 void loop() {
-  if (WiFi.status() == WL_CONNECTED && Firebase.ready()) {
-    if (millis() - lastSensorPublish >= 1000) {
-      lastSensorPublish = millis();
-      publishSensors();
-    }
-    if (millis() - lastCommandPoll >= 500) {
-      lastCommandPoll = millis();
-      pollCommand();
+  while (unoSerial.available()) {
+    const char c = (char)unoSerial.read();
+    if (c == '\n') {
+      uartLine.trim();
+      if (uartLine.startsWith("S|") && Firebase.ready()) publishTelemetry(uartLine);
+      uartLine = "";
+    } else if (c != '\r' && uartLine.length() < 100) {
+      uartLine += c;
+    } else if (uartLine.length() >= 100) {
+      uartLine = "";
     }
   }
-  delay(10);
+
+  if (Firebase.ready() && millis() - lastCommandPoll >= 400) {
+    lastCommandPoll = millis();
+    pollAndroidCommand();
+  }
+  yield();
 }

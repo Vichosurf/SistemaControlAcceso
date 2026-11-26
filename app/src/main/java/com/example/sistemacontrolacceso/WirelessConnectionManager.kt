@@ -12,7 +12,10 @@ import com.google.firebase.database.ValueEventListener
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** Comunicación real Android-Wemos mediante Firebase Realtime Database. */
+/**
+ * Android -> Firebase -> Wemos -> UART -> Arduino Uno.
+ * Firebase confirma la nube; el estado físico se confirma con telemetría del Uno.
+ */
 class WirelessConnectionManager(
     private val onStateChanged: (ConnectionState) -> Unit,
     private val onFrameReceived: (WirelessFrame) -> Unit,
@@ -20,6 +23,7 @@ class WirelessConnectionManager(
 ) {
     enum class TechType { BLUETOOTH_HC05, WIFI_UDP_SOCKET, INTERAPP_MESH }
     enum class ConnectionState { DISCONNECTED, CONNECTING, CONNECTED, ERROR }
+
     data class WirelessFrame(
         val seqNum: Int, val command: String, val payload: String,
         val timestamp: Long, val checksum: String, val isVerified: Boolean
@@ -36,22 +40,22 @@ class WirelessConnectionManager(
     private var commandRef: DatabaseReference? = null
     private var connectionListener: ValueEventListener? = null
     private var sensorListener: ValueEventListener? = null
+    private var accessListener: ValueEventListener? = null
     private var state = ConnectionState.DISCONNECTED
     private var technology = TechType.WIFI_UDP_SOCKET
     private var sequence = 1
     private var tx = 0
     private var rx = 0
+    private var lastWriteStarted = 0L
 
     fun connect(tech: TechType, targetAddress: String = "Firebase Realtime Database") {
         technology = tech
         setState(ConnectionState.CONNECTING)
         try {
-            val app = FirebaseApp.getInstance()
-            val context = app.applicationContext
+            val context = FirebaseApp.getInstance().applicationContext
             prefs = context.getSharedPreferences("iot_pending_commands", Context.MODE_PRIVATE)
             sequence = prefs?.getInt("sequence", 1) ?: 1
             val db = FirebaseDatabase.getInstance()
-            try { db.setPersistenceEnabled(true) } catch (_: IllegalStateException) { }
             database = db
             commandRef = db.getReference("comandos/ultimo")
             connectionRef = db.getReference(".info/connected")
@@ -60,8 +64,8 @@ class WirelessConnectionManager(
                     val connected = snapshot.getValue(Boolean::class.java) == true
                     setState(if (connected) ConnectionState.CONNECTED else ConnectionState.DISCONNECTED)
                     if (connected) {
-                        SecurityManager.logEvent("WIRELESS", "FIREBASE_CONNECTED", "Conexión RTDB activa por HTTPS/TLS", true)
-                        observeSensors()
+                        SecurityManager.logEvent("WIRELESS", "FIREBASE_CONNECTED", "Android conectado a Firebase; el Wemos debe estar conectado para alcanzar el Arduino.", true)
+                        observeHardware()
                         flushPending()
                     }
                 }
@@ -77,51 +81,83 @@ class WirelessConnectionManager(
         }
     }
 
-    private fun observeSensors() {
-        val ref = database?.getReference("sensores") ?: return
-        sensorListener?.let { ref.removeEventListener(it) }
+    private fun observeHardware() {
+        val sensors = database?.getReference("sensores") ?: return
+        sensorListener?.let { sensors.removeEventListener(it) }
         sensorListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val distance = snapshot.child("distancia").getValue(Int::class.javaObjectType)
-                    ?: snapshot.child("distanciaCm").getValue(Int::class.javaObjectType)
                 val light = snapshot.child("luz").getValue(Int::class.javaObjectType)
-                    ?: snapshot.child("luminosidad").getValue(Int::class.javaObjectType)
-                if (distance != null || light != null) {
+                val angle = snapshot.child("anguloServo").getValue(Int::class.javaObjectType) ?: 0
+                val mode = snapshot.child("modo").getValue(String::class.java) ?: "AUTO"
+                val emergency = snapshot.child("emergencia").getValue(Boolean::class.java) ?: false
+                val rssi = snapshot.child("rssi").getValue(Int::class.javaObjectType) ?: -127
+                if (distance != null && light != null) {
                     rx++
-                    val payload = "distancia=${distance ?: -1};luz=${light ?: -1}"
-                    onFrameReceived(WirelessFrame(rx, "SENSOR_UPDATE", payload, System.currentTimeMillis(), "", true))
-                    onMetricsUpdated(NetworkMetrics(0, tx, rx, 0f, 0))
+                    val payload = "distancia=$distance;luz=$light;angulo=$angle;modo=$mode;emergencia=$emergency;rssi=$rssi"
+                    onFrameReceived(WirelessFrame(rx, "HARDWARE_UPDATE", payload,
+                        snapshot.child("actualizadoEn").getValue(Long::class.java) ?: System.currentTimeMillis(),
+                        "RTDB", true))
+                    onMetricsUpdated(NetworkMetrics(
+                        if (lastWriteStarted == 0L) 0 else System.currentTimeMillis() - lastWriteStarted,
+                        tx, rx, 0f, rssi
+                    ))
                 }
             }
             override fun onCancelled(error: DatabaseError) {
                 SecurityManager.logEvent("WIRELESS", "SENSOR_READ_ERROR", error.message, false)
             }
         }
-        ref.addValueEventListener(sensorListener!!)
+        sensors.addValueEventListener(sensorListener!!)
+
+        val access = database?.getReference("acceso") ?: return
+        accessListener?.let { access.removeEventListener(it) }
+        accessListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val angle = snapshot.child("anguloServo").getValue(Int::class.javaObjectType) ?: return
+                val confirmed = snapshot.child("confirmadoArduino").getValue(Boolean::class.java) ?: false
+                if (confirmed) {
+                    SecurityManager.logEvent("HARDWARE", "ARDUINO_STATE_CONFIRMED",
+                        "Arduino confirmó servomotor a $angle grados.", true)
+                }
+            }
+            override fun onCancelled(error: DatabaseError) {
+                SecurityManager.logEvent("WIRELESS", "ACCESS_READ_ERROR", error.message, false)
+            }
+        }
+        access.addValueEventListener(accessListener!!)
     }
 
     fun disconnect() {
         connectionRef?.let { ref -> connectionListener?.let(ref::removeEventListener) }
         database?.getReference("sensores")?.let { ref -> sensorListener?.let(ref::removeEventListener) }
+        database?.getReference("acceso")?.let { ref -> accessListener?.let(ref::removeEventListener) }
         connectionListener = null
         sensorListener = null
+        accessListener = null
         setState(ConnectionState.DISCONNECTED)
         SecurityManager.logEvent("WIRELESS", "DISCONNECT", "Escucha RTDB detenida", true)
     }
 
     fun sendFrame(command: String, payload: String): Boolean {
+        if (database == null || commandRef == null) {
+            SecurityManager.logEvent("WIRELESS", "COMMAND_REJECTED", "Conecta Firebase antes de enviar órdenes al Arduino.", false)
+            return false
+        }
         val seq = sequence++
         prefs?.edit()?.putInt("sequence", sequence)?.apply()
         val timestamp = System.currentTimeMillis()
         val raw = "$seq|$command|$payload|$timestamp"
         val frame = JSONObject().apply {
-            put("seq", seq); put("comando", command); put("payload", payload)
+            put("seq", seq)
+            put("comando", command)
+            put("payload", payload)
             put("timestamp", timestamp)
             put("checksum", SecurityManager.sha256(raw + "_OT_KEY_2026").take(8).uppercase())
         }
-        if (state != ConnectionState.CONNECTED || commandRef == null) {
+        if (state != ConnectionState.CONNECTED) {
             enqueue(frame)
-            SecurityManager.logEvent("WIRELESS", "COMMAND_QUEUED", "$command guardado para reconexión", true)
+            SecurityManager.logEvent("WIRELESS", "COMMAND_QUEUED", "$command quedó en espera de Firebase.", true)
             return true
         }
         writeFrame(frame)
@@ -129,7 +165,7 @@ class WirelessConnectionManager(
     }
 
     private fun writeFrame(frame: JSONObject) {
-        val started = System.currentTimeMillis()
+        lastWriteStarted = System.currentTimeMillis()
         val values = mapOf(
             "seq" to frame.optInt("seq"),
             "comando" to frame.optString("comando"),
@@ -139,8 +175,8 @@ class WirelessConnectionManager(
         )
         commandRef?.setValue(values)?.addOnSuccessListener {
             tx++
-            onMetricsUpdated(NetworkMetrics(System.currentTimeMillis() - started, tx, rx, 0f, 0))
-            SecurityManager.logEvent("WIRELESS", "COMMAND_SENT", "Comando ${frame.optString("comando")} enviado", true)
+            onMetricsUpdated(NetworkMetrics(System.currentTimeMillis() - lastWriteStarted, tx, rx, 0f, -127))
+            SecurityManager.logEvent("WIRELESS", "COMMAND_PUBLISHED", "Orden publicada en Firebase: ${frame.optString("comando")}. Esperando confirmación del Arduino.", true)
         }?.addOnFailureListener {
             enqueue(frame)
             SecurityManager.logEvent("WIRELESS", "COMMAND_FAILED", it.localizedMessage ?: "Error RTDB", false)
@@ -148,7 +184,6 @@ class WirelessConnectionManager(
     }
 
     private fun enqueue(frame: JSONObject) {
-        // Los comandos representan estado deseado: se conserva el más reciente.
         prefs?.edit()?.putString("queue", JSONArray().put(frame).toString())?.apply()
     }
 
