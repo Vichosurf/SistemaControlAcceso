@@ -11,6 +11,7 @@ constraintlayout = "2.1.4"
 firebaseBom = "35.2.0"
 googleServices = "4.6.0"
 crashlyticsPlugin = "3.0.8"
+kotlinGradlePlugin = "2.4.21"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

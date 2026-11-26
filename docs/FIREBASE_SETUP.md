@@ -16,7 +16,7 @@
 6. Crea una base de datos Cloud Firestore.
 7. En Crashlytics, habilita el servicio y ejecuta una compilación de prueba para validar el envío de informes.
 
-Los plugins de Google Services y Crashlytics quedan aplicados en app/build.gradle.kts. El archivo google-services.json se incorpora en app/google-services.json y debe corresponder al applicationId exacto. Firebase indica que este archivo contiene identificadores no secretos; de todos modos, restringe la API key desde Google Cloud Console y nunca agregues claves de cuentas de servicio o credenciales privadas al cliente Android.
+Los plugins de Google Services y Crashlytics quedan aplicados en app/build.gradle.kts. El proyecto fija Kotlin Gradle Plugin 2.4.21 para mantener compatibilidad de metadatos con Firebase Auth 25.x. El archivo google-services.json se incorpora en app/google-services.json y debe corresponder al applicationId exacto. Firebase indica que este archivo contiene identificadores no secretos; de todos modos, restringe la API key desde Google Cloud Console y nunca agregues claves de cuentas de servicio o credenciales privadas al cliente Android.
 
 ## Estructura de Firestore
 
