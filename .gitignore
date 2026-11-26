@@ -13,6 +13,3 @@
 .externalNativeBuild
 .cxx
 local.properties
-
-# Firebase: credenciales específicas del proyecto (no publicar)
-app/google-services.json

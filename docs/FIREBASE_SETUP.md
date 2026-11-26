@@ -16,7 +16,7 @@
 6. Crea una base de datos Cloud Firestore.
 7. En Crashlytics, habilita el servicio y ejecuta una compilación de prueba para validar el envío de informes.
 
-Los plugins de Google Services y Crashlytics se activan automáticamente cuando existe app/google-services.json. Sin ese archivo el proyecto conserva la compilación de desarrollo, pero la sincronización con Firebase no funcionará.
+Los plugins de Google Services y Crashlytics quedan aplicados en app/build.gradle.kts. El archivo google-services.json se incorpora en app/google-services.json y debe corresponder al applicationId exacto. Firebase indica que este archivo contiene identificadores no secretos; de todos modos, restringe la API key desde Google Cloud Console y nunca agregues claves de cuentas de servicio o credenciales privadas al cliente Android.
 
 ## Estructura de Firestore
 
@@ -78,7 +78,7 @@ firebase use --add
 firebase deploy --only firestore:rules
 ```
 
-No se han desplegado estas reglas desde este entorno: el despliegue requiere autorización en la cuenta Firebase propietaria.
+Las reglas están preparadas en el repositorio, pero todavía deben desplegarse en el proyecto Firebase con una sesión autorizada del propietario.
 
 ## Verificación de compilación
 

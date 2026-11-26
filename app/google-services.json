@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "82864995994",
+    "project_id": "sistemacontrolacceso-ec360",
+    "storage_bucket": "sistemacontrolacceso-ec360.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:82864995994:android:91af3002288911ac502923",
+        "android_client_info": {
+          "package_name": "com.example.sistemacontrolacceso"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD7Q5-5BlsDlKPu0aN4E3m0-3__RBrvEfA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

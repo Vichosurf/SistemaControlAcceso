@@ -1,12 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
-}
-
-// El proyecto puede compilar sin credenciales durante el desarrollo.
-// Al colocar app/google-services.json se activan los plugins oficiales de Firebase.
-if (file("google-services.json").exists()) {
-    apply(plugin = "com.google.gms.google-services")
-    apply(plugin = "com.google.firebase.crashlytics")
+    alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
 }
 
 android {
