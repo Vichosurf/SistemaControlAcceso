@@ -98,10 +98,7 @@ class WirelessConnectionManager(
                     onFrameReceived(WirelessFrame(rx, "HARDWARE_UPDATE", payload,
                         snapshot.child("actualizadoEn").getValue(Long::class.java) ?: System.currentTimeMillis(),
                         "RTDB", true))
-                    onMetricsUpdated(NetworkMetrics(
-                        if (lastWriteStarted == 0L) 0 else System.currentTimeMillis() - lastWriteStarted,
-                        tx, rx, 0f, rssi
-                    ))
+                    onMetricsUpdated(NetworkMetrics(-1, tx, rx, -1f, rssi))
                 }
             }
             override fun onCancelled(error: DatabaseError) {
@@ -175,7 +172,7 @@ class WirelessConnectionManager(
         )
         commandRef?.setValue(values)?.addOnSuccessListener {
             tx++
-            onMetricsUpdated(NetworkMetrics(System.currentTimeMillis() - lastWriteStarted, tx, rx, 0f, -127))
+            onMetricsUpdated(NetworkMetrics(-1, tx, rx, -1f, -127))
             SecurityManager.logEvent("WIRELESS", "COMMAND_PUBLISHED", "Orden publicada en Firebase: ${frame.optString("comando")}. Esperando confirmación del Arduino.", true)
         }?.addOnFailureListener {
             enqueue(frame)
