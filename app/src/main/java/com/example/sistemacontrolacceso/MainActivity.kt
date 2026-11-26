@@ -206,9 +206,10 @@ class MainActivity : AppCompatActivity() {
                             // Si hay conexión Firebase, intenta vaciar la cola local.
                             FirebaseEventSync.sincronizarPendientes(applicationContext) { ok, mensaje ->
                                 runOnUiThread {
-                                    if (!isFinishing && !isDestroyed && ok) {
+                                    if (!isFinishing && !isDestroyed) {
+                                        val estadoSync = if (ok) "OK" else "PENDIENTE"
                                         tvEstado.text = "WeMos OK | ${estado.barrera.uppercase()} | ${estado.modo.uppercase()}\n" +
-                                            "Motivo: ${estado.motivo} | Firebase: ${mensaje}"
+                                            "Motivo: ${estado.motivo} | Firebase ${estadoSync}: ${mensaje}"
                                     }
                                 }
                             }
