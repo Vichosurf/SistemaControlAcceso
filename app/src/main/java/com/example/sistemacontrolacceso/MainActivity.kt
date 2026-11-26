@@ -354,10 +354,10 @@ class MainActivity : AppCompatActivity() {
             },
             onMetricsUpdated = { metrics ->
                 runOnUiThread {
-                    tvMetricLatency.text = "Latencia: ${metrics.latencyMs} ms"
-                    tvMetricLoss.text = "Pérdida: ${String.format(Locale.US, "%.1f", metrics.packetLossPercent)}%"
+                    tvMetricLatency.text = if (metrics.latencyMs >= 0) "Latencia: ${metrics.latencyMs} ms" else "Latencia: No medida"
+                    tvMetricLoss.text = if (metrics.packetLossPercent >= 0) "Pérdida: ${String.format(Locale.US, "%.1f", metrics.packetLossPercent)}%" else "Pérdida: No medida"
                     tvMetricPackets.text = "Paquetes Tx/Rx: ${metrics.packetsSent}/${metrics.packetsReceived}"
-                    tvMetricRssi.text = "RSSI: ${metrics.rssiDbm} dBm"
+                    tvMetricRssi.text = if (metrics.rssiDbm > -127) "RSSI: ${metrics.rssiDbm} dBm" else "RSSI: No disponible"
                 }
             }
         )

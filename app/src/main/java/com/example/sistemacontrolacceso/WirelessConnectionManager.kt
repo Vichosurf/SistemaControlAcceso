@@ -117,7 +117,7 @@ class WirelessConnectionManager(
         val frame = JSONObject().apply {
             put("seq", seq); put("comando", command); put("payload", payload)
             put("timestamp", timestamp)
-            put("checksum", SecurityManager.calculateFrameChecksum(raw))
+            put("checksum", SecurityManager.sha256(raw + "_OT_KEY_2026").take(8).uppercase())
         }
         if (state != ConnectionState.CONNECTED || commandRef == null) {
             enqueue(frame)

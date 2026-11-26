@@ -83,7 +83,7 @@ flowchart TD
     UI --> G[GPS y hora del dispositivo]
 ```
 
-Este diagrama describe **componentes conceptuales de la app observables o reportados** y no pretende representar clases exactas ni un backend desplegado. El montaje experimental con Arduino mostrado arriba se documenta **por separado**, ya que la conexión entre el circuito físico y la app todavía requiere evidencia directa. La integración con Python/FastAPI se considera una posible evolución, **no una característica terminada**.
+Este diagrama describe **componentes conceptuales de la app observables o reportados** y no pretende representar clases exactas ni un backend desplegado. La arquitectura objetivo separa el control físico en Arduino Uno y la conectividad Wi-Fi/Firebase en Wemos ESP8266. La comunicación serial está documentada en firmware/ArduinoUno/README.md; su funcionamiento extremo a extremo aún debe probarse en el montaje real. La integración con Python/FastAPI se considera una posible evolución, **no una característica terminada**.
 
 ## 7. Decisiones de diseño
 
@@ -147,7 +147,7 @@ Aspectos que deben revisarse antes de representar la aplicación como segura:
 
 - Publicar resultados verificables de las pruebas, con fecha, versión y dispositivo.
 - Diferenciar en un anexo las funciones simuladas de las integraciones con hardware verificadas.
-- Incorporar el código/firmware de Arduino, diagrama de conexión y tabla de pines, siempre que Vicente confirme que son parte del proyecto.
+- Validar el firmware Arduino Uno + Wemos incluido en firmware/ArduinoUno/ y grabar la prueba integral app -> Firebase -> Wemos -> UART -> Arduino.
 - Grabar una demostración integral en una sola toma: abrir la app, cambiar un control, observar el efecto físico y revisar el log.
 - Revisar manejo de credenciales, registro de eventos y seguridad del transporte.
 - Documentar la estructura de paquetes y clases a partir del código real.

@@ -31,7 +31,7 @@ long lastSequence = 0;
 
 String frameChecksum(long seq, const String &command, const String &payload, unsigned long long timestamp) {
   String raw = String(seq) + "|" + command + "|" + payload + "|" + String(timestamp);
-  String digest = sha256(raw);
+  String digest = sha256(raw + "_OT_KEY_2026");
   digest.toUpperCase();
   return digest.substring(0, 16);
 }
