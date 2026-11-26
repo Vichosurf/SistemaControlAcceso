@@ -168,23 +168,3 @@ Proyecto académico de desarrollo móvil y control operacional.
 
 ---
 
-## 13. Matriz de Cumplimiento - Escala de Apreciación Unidad 3 (68.6 Puntos / Nota 7.0)
-
-| Código | Indicador de Evaluación | Puntaje Máx. | Implementación y Evidencia en el Código |
-| :--- | :--- | :---: | :--- |
-| **3.1.1.1** | Estándares de envío de información segura. | 4.2 pts | Cifrado Hash SHA-256 HMAC para firmas de datos (`API_SECRET` + Payload) en Firmware C++ y `SecurityManager.sha256`. |
-| **3.1.1.2** | Integridad de datos enviados y recibidos. | 4.2 pts | Verificación de Checksum de 8 caracteres (`calculateFrameChecksum`) en cada trama inalámbrica de la App y del microcontrolador. |
-| **3.1.1.3** | Mecanismos de reconexión automática ante pérdida de señal IoT. | 4.8 pts | Bucle de reconexión automática `scheduleAutoReconnect()` en `WirelessConnectionManager.kt` que reintenta hasta 5 veces. |
-| **3.1.1.4** | Almacenamiento temporal de datos sin conexión. | 4.8 pts | Búfer temporal local `offlineFrameQueue` en Android y procesamiento de eventos en microcontrolador al perder señal. |
-| **3.1.2.5** | Envío de instrucciones mediante comunicación serial/red desde App móvil. | 4.8 pts | Métodos `sendFrame` y `sendEsp8266Command` (`/abrir`, `/cerrar`, `/estado`) desde la aplicación Android. |
-| **3.1.2.6** | Recepción de instrucciones mediante comunicación serial/red en App móvil. | 4.8 pts | Callbacks `onFrameReceived` y `onHardwareDataReceived` para lecturas de sensores (LDR A0 y Ultrasónico) y estado de barrera. |
-| **3.1.2.7** | Almacenamiento temporal y sincronización con almacenamiento externo al reconectar. | 5.4 pts | Función `flushOfflineQueue()` que vacía y sincroniza automáticamente los comandos acumulados al recuperar la señal Wi-Fi. |
-| **3.1.3.8** | Envío de instrucciones mediante comunicación serial desde el microcontrolador. | 12.8 pts | Microcontrolador WeMos D1 transmite lecturas JSON por Serial (`115200` baudios) y Wi-Fi HTTP (`enviarEventoApp()`). |
-| **3.1.3.9** | Recepción de instrucciones mediante comunicación serial en el microcontrolador. | 4.2 pts | Microcontrolador recibe y procesa peticiones HTTP/Serial en `server.on("/abrir")`, `server.on("/cerrar")`, `/estado`. |
-| **3.1.3.10**| Optimización del consumo de energía de sensores y dispositivo móvil. | 3.6 pts | Polling adaptativo Duty-Cycle (2s/5s) que reduce el consumo de batería en un 35% (`getEnergyEfficiencyReport`). |
-| **3.1.4.11**| Conexión Android y dispositivo IoT cumple con estándares ISO de seguridad. | 4.8 pts | Cumplimiento normativo ISO/IEC 27001, ISO 27400 e IEC 62443 con marcas de tiempo ISO 8601 en auditoría. |
-| **3.1.4.12**| Medidas para proteger datos personales durante la conexión. | 4.2 pts | Cifrado SHA-256 de credenciales de operador, autenticación oficial mediante Google Sign-In y sesión revocable en Logout. |
-| **3.1.4.13**| Plan de contingencia y continuidad operativa ante fallas de comunicación. | 3.0 pts | Activación de modo simulado/resiliente si el hardware deja de responder para prevenir cuelgues o cierres inesperados. |
-| **3.1.4.14**| Compatibilidad con diferentes versiones de Android y arquitecturas de hardware. | 3.0 pts | Soporte desde Android 7.0 (API 24) hasta Android 16 (API 37), interfaz adaptativa Material 3 e Insets Edge-to-Edge. |
-| **TOTAL**| **Puntaje Ideal de la Escala de Apreciación** | **68.6 pts** | **Estatus: 100% Excelente (Nota Final: 7.0)** |
-
