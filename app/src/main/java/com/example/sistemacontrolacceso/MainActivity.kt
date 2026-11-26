@@ -327,10 +327,11 @@ class MainActivity : AppCompatActivity() {
                             NotificationHelper.sendNotification(
                                 context = this,
                                 notificationId = 3001,
-                                title = "📶 Conexión Inalámbrica Establecida",
-                                message = "Enlace seguro activo mediante ${wirelessManager.getCurrentTech().name}.",
+                                title = "📶 Conexión Firebase Establecida",
+                                message = "Canal nube activo; enviando configuración al Arduino mediante Wemos.",
                                 isAlert = false
                             )
+                            enviarConfiguracionArduino()
                         }
                         WirelessConnectionManager.ConnectionState.CONNECTING -> {
                             tvWirelessStatus.text = "Estado: ESTABLECIENDO SOCKET..."
