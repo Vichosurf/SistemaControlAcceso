@@ -36,6 +36,7 @@ int servoAngle = 0;
 unsigned long lastSample = 0;
 unsigned long lastReport = 0;
 long telemetrySequence = 0;
+long lastAppliedCommandSequence = 0;
 String inputLine;
 
 int readDistanceCm() {
@@ -73,7 +74,8 @@ void sendTelemetry() {
   wemosSerial.print(servoAngle); wemosSerial.print("|");
   wemosSerial.print(modeName); wemosSerial.print("|");
   wemosSerial.print(emergency ? 1 : 0); wemosSerial.print("|");
-  wemosSerial.println(millis());
+  wemosSerial.print(millis()); wemosSerial.print("|");
+  wemosSerial.println(lastAppliedCommandSequence);
 }
 
 void processCommand(String line) {
@@ -104,6 +106,7 @@ void processCommand(String line) {
   emergency = fields[6].toInt() == 1;
 
   applyOutputs();
+  lastAppliedCommandSequence = commandSeq;
   Serial.print("Orden aplicada desde Wemos. Secuencia: ");
   Serial.println(commandSeq);
 }

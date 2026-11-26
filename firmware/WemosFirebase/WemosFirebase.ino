@@ -53,8 +53,9 @@ void publishTelemetry(const String &line) {
   long seq; int distance, light, angle, emergency;
   char mode[12] = "AUTO";
   unsigned long unoMillis;
-  if (sscanf(line.c_str(), "S|%ld|%d|%d|%d|%11[^|]|%d|%lu",
-      &seq, &distance, &light, &angle, mode, &emergency, &unoMillis) != 7) return;
+  long appliedCommandSeq = 0;
+  if (sscanf(line.c_str(), "S|%ld|%d|%d|%d|%11[^|]|%d|%lu|%ld",
+      &seq, &distance, &light, &angle, mode, &emergency, &unoMillis, &appliedCommandSeq) != 8) return;
 
   const int rssi = WiFi.RSSI();
   FirebaseJson sensors;
@@ -77,7 +78,8 @@ void publishTelemetry(const String &line) {
   access.set("anguloServo", angle);
   access.set("modo", mode);
   access.set("emergencia", emergency == 1);
-  access.set("confirmadoArduino", true);
+  access.set("confirmadoArduino", appliedCommandSeq >= lastCommandSequence);
+  access.set("secuenciaComandoConfirmada", appliedCommandSeq);
   access.set("secuenciaArduino", seq);
   access.set("actualizadoEn", (long long)millis());
   Firebase.RTDB.setJSON(&fbdo, "/acceso", &access);
