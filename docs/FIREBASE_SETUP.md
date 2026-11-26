@@ -66,3 +66,22 @@ La cola local tiene un máximo de 200 eventos. La consulta al WeMos se realiza m
 - No almacenar claves privadas de cuentas de servicio en Android.
 - SHA-256 del firmware es un checksum y no autentica al dispositivo.
 - El enlace HTTP local con el WeMos no está cifrado; usarlo solo en una red de laboratorio protegida.
+
+
+## Publicar las reglas de Firestore
+
+El archivo firestore.rules está en la raíz del repositorio. Después de autenticar Firebase CLI con una cuenta que tenga permisos sobre el proyecto, selecciona el proyecto correcto y ejecuta:
+
+```bash
+firebase login
+firebase use --add
+firebase deploy --only firestore:rules
+```
+
+No se han desplegado estas reglas desde este entorno: el despliegue requiere autorización en la cuenta Firebase propietaria.
+
+## Verificación de compilación
+
+El workflow .github/workflows/android-build.yml compila :app:assembleDebug en GitHub Actions al actualizar Copy-Main. Se ejecuta sin google-services.json porque los plugins de Google Services y Crashlytics se aplican condicionalmente cuando el archivo local existe.
+
+Cuando se agregue google-services.json en app/, el workflow también compilará con los plugins de Firebase activos. El archivo se mantiene excluido de Git.
