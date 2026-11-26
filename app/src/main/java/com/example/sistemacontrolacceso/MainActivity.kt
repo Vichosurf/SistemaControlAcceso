@@ -164,13 +164,16 @@ class MainActivity : AppCompatActivity() {
 
     private val wemosPollHandler = Handler(Looper.getMainLooper())
     private var wemosPollActivo = false
+    private var wemosConsultaEnCurso = false
     private var ultimoEstadoFisico: Boolean? = null
     private val wemosPollRunnable = object : Runnable {
         override fun run() {
             if (!wemosPollActivo || !::etIpWemos.isInitialized) return
             val ip = etIpWemos.text.toString().trim()
-            if (ip.isNotBlank()) {
+            if (ip.isNotBlank() && !wemosConsultaEnCurso) {
+                wemosConsultaEnCurso = true
                 wemos.consultarEstado(ip) { exito, estado, mensaje ->
+                    wemosConsultaEnCurso = false
                     runOnUiThread {
                         if (isFinishing || isDestroyed) return@runOnUiThread
                         if (exito && estado != null) {
@@ -186,6 +189,13 @@ class MainActivity : AppCompatActivity() {
                                 SecurityManager.logEvent("WEMOS",
                                     if (estado.abierta) "BARRERA_ABIERTA" else "BARRERA_CERRADA",
                                     "Estado recibido desde hardware. Motivo: ${estado.motivo}", true)
+                                WemosEventStore.registrarCambio(
+                                    this@MainActivity,
+                                    estado.abierta,
+                                    estado.motivo,
+                                    estado.distancia,
+                                    estado.luz
+                                )
                                 ultimoEstadoFisico = estado.abierta
                             }
                         } else {
@@ -208,6 +218,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         wemosPollActivo = false
+        wemosConsultaEnCurso = false
         wemosPollHandler.removeCallbacks(wemosPollRunnable)
         super.onPause()
     }
