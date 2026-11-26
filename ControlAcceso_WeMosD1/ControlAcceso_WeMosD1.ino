@@ -1,389 +1,220 @@
 #include <ESP8266WiFi.h>
-#include <ESP8266HTTPClient.h>
 #include <ESP8266WebServer.h>
-#include <WiFiClient.h>
 #include <Servo.h>
 #include <bearssl/bearssl_hash.h>
 
-// =========================================================================
-// 1. CONFIGURACIÓN DE RED Y SEGURIDAD (Modificar con tu Hotspot 2.4 GHz)
-// =========================================================================
-const char* ssid     = "ZONA_WIFI_CONTROL_ACCESO";
-const char* password = "ClaveSecretaControlAcceso2026";
+// Conserva el mapeo de pines que ya usa Copy-Main.
+// Protege ECHO del HC-SR04 con divisor de tensión (5 V -> 3.3 V).
+// Alimenta el servo externamente y une las tierras (GND).
 
-// Opcional: URL de backend externo si usas servidor adicional
-const bool usarBackendHttp = false;
-const char* serverUrl      = "http://192.168.1.100:8000/api/acceso/";
+const char* AP_SSID = "SistemaControlAcceso";
+const char* AP_PASSWORD = "12345678";
+const char* STA_SSID = "";       // Opcional: Wi-Fi externa 2.4 GHz
+const char* STA_PASSWORD = "";
+const char* API_SECRET = "ClaveSecretaControlAcceso2026";
 
-// Clave secreta compartida con la App Android para validar integridad SHA-256
-const String API_SECRET = "ClaveSecretaControlAcceso2026";
+const uint8_t SERVO_PIN = D0;
+const uint8_t TRIG_PIN = D1;
+const uint8_t ECHO_PIN = D2;
+const uint8_t LED_ROJO = D5;
+const uint8_t LED_VERDE = D6;
+const uint8_t LDR_PIN = A0;
 
-// =========================================================================
-// 2. MAPEO DE PINES SEGÚN TU MONTAJE FÍSICO EN WEMOS D1
-// =========================================================================
-const int servoPin = D0;  // Etiqueta D2 en placa (señal servomotor)
-const int trigPin  = D1;  // Etiqueta D3 en placa (HC-SR04 Trig)
-const int echoPin  = D2;  // Etiqueta D4 en placa (HC-SR04 Echo)
-const int ledRojo  = D5;  // Etiqueta D5 en placa (LED Rojo - Alerta/Abierta)
-const int ledVerde = D6;  // Etiqueta D6 en placa (LED Verde - Normal/Cerrada)
-const int ldrPin   = A0;  // Pin analógico A0 (Fotorresistencia LDR)
-
-// =========================================================================
-// 3. VARIABLES DE ESTADO, UMBRALES Y ALMACENAMIENTO OFFLINE (Rúbrica 3.1.1.4)
-// =========================================================================
-Servo barrera;
 ESP8266WebServer server(80);
-
-bool estaAbierta    = false;
+Servo barrera;
+bool estaAbierta = false;
 bool aperturaManual = false;
-int umbralDistancia = 20;   // cm
-int umbralLuz       = 450;  // ADC (0-1023)
-
+int umbralDistancia = 20;
+int umbralLuz = 600;
 int ultimaDistancia = 400;
-int ultimaLuz       = 500;
+int ultimaLuz = 0;
+String motivoActual = "INICIO";
+String ultimoEvento = "SISTEMA_INICIADO";
 
-// Temporizadores no bloqueantes con millis()
-unsigned long tAnteriorSensores   = 0;
-unsigned long tAnteriorSerial     = 0;
-unsigned long tAnteriorReconexion = 0;
+unsigned long tSensores = 0, tSerial = 0, tReconexion = 0, tMantenerAbierta = 0;
+const unsigned long INTERVALO_SENSORES = 200;
+const unsigned long INTERVALO_SERIAL = 1000;
+const unsigned long INTERVALO_RECONEXION = 10000;
+const unsigned long TIEMPO_HOLD_MS = 3000;
 
-const long INTERVALO_SENSORES   = 300;   // Lectura de sensores cada 300 ms
-const long INTERVALO_SERIAL     = 1500;  // Telemetría serial cada 1.5 s
-const long INTERVALO_RECONEXION = 10000; // Reintento Wi-Fi cada 10 s
+struct Evento { String tipo; int distancia; int luz; String firma; };
+const uint8_t MAX_EVENTOS = 20;
+Evento eventos[MAX_EVENTOS];
+uint8_t totalEventos = 0;
 
-// Buffer circular para almacenamiento temporal cuando no hay conexión Wi-Fi
-struct EventoOffline {
-  String evento;
-  int distancia;
-  int luz;
-  unsigned long timestampMs;
-  String firmaSha256;
-};
-
-const int MAX_OFFLINE = 15;
-EventoOffline colaOffline[MAX_OFFLINE];
-int totalOffline = 0;
-
-// =========================================================================
-// 4. CRIPTOGRAFÍA SHA-256 CON BEARSSL (Rúbrica 3.1.1.1 y 3.1.1.2)
-// =========================================================================
-String generarSHA256(String payload) {
+String sha256(const String& datos) {
   br_sha256_context ctx;
   br_sha256_init(&ctx);
-  br_sha256_update(&ctx, payload.c_str(), payload.length());
-
-  byte shaResult[32];
-  br_sha256_out(&ctx, shaResult);
-
-  String hashHex = "";
-  for (int i = 0; i < 32; i++) {
-    char str[3];
-    sprintf(str, "%02x", (int)shaResult[i]);
-    hashHex += str;
+  br_sha256_update(&ctx, datos.c_str(), datos.length());
+  uint8_t digest[32];
+  br_sha256_out(&ctx, digest);
+  String salida;
+  for (uint8_t i = 0; i < 32; i++) {
+    char b[3]; snprintf(b, sizeof(b), "%02x", digest[i]); salida += b;
   }
-  return hashHex;
+  return salida;
+}
+
+void registrarEvento(const String& tipo) {
+  ultimoEvento = tipo;
+  String firma = sha256(tipo + "|" + String(ultimaDistancia) + "|" + String(ultimaLuz) + "|" + API_SECRET);
+  if (totalEventos < MAX_EVENTOS) eventos[totalEventos++] = {tipo, ultimaDistancia, ultimaLuz, firma};
+  else {
+    for (uint8_t i = 1; i < MAX_EVENTOS; i++) eventos[i - 1] = eventos[i];
+    eventos[MAX_EVENTOS - 1] = {tipo, ultimaDistancia, ultimaLuz, firma};
+  }
+  Serial.println("[EVENTO] " + tipo);
+}
+
+void abrirBarrera(const String& motivo) {
+  motivoActual = motivo;
+  if (!estaAbierta) {
+    barrera.write(90); digitalWrite(LED_ROJO, HIGH); digitalWrite(LED_VERDE, LOW);
+    estaAbierta = true; registrarEvento(motivo);
+  }
+}
+void cerrarBarrera() {
+  motivoActual = "NORMAL";
+  if (estaAbierta) {
+    barrera.write(0); digitalWrite(LED_ROJO, LOW); digitalWrite(LED_VERDE, HIGH);
+    estaAbierta = false; registrarEvento("CIERRE_BARRERA");
+  }
+}
+int leerDistanciaCm() {
+  digitalWrite(TRIG_PIN, LOW); delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH); delayMicroseconds(10); digitalWrite(TRIG_PIN, LOW);
+  unsigned long duracion = pulseIn(ECHO_PIN, HIGH, 25000);
+  return duracion == 0 ? 400 : (int)(duracion / 58UL);
 }
 
 String construirJsonEstado() {
-  String estadoStr = estaAbierta ? "abierta" : "cerrada";
-  String modoStr   = aperturaManual ? "manual" : "automatico";
-  String rawFirma  = estadoStr + "|" + String(ultimaDistancia) + "|" + String(ultimaLuz) + "|" + API_SECRET;
-  String firma     = generarSHA256(rawFirma);
-
+  String estado = estaAbierta ? "abierta" : "cerrada";
+  String modo = aperturaManual ? "manual" : "automatico";
+  String ip = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : WiFi.softAPIP().toString();
+  String firma = sha256(estado + "|" + String(ultimaDistancia) + "|" + String(ultimaLuz) + "|" + API_SECRET);
   String json = "{";
-  json += "\"barrera\":\"" + estadoStr + "\",";
-  json += "\"modo\":\"" + modoStr + "\",";
-  json += "\"distancia\":" + String(ultimaDistancia) + ",";
-  json += "\"luz\":" + String(ultimaLuz) + ",";
-  json += "\"pendientes_offline\":" + String(totalOffline) + ",";
-  json += "\"firma_sha256\":\"" + firma + "\"";
-  json += "}";
+  json += "\"status\":\"ok\",\"conectado\":true,\"ip\":\"" + ip + "\",";
+  json += "\"barrera\":\"" + estado + "\",\"estado\":\"" + estado + "\",";
+  json += "\"abierta\":" + String(estaAbierta ? "true" : "false") + ",";
+  json += "\"modo\":\"" + modo + "\",\"distancia\":" + String(ultimaDistancia) + ",";
+  json += "\"luz\":" + String(ultimaLuz) + ",\"umbral_distancia\":" + String(umbralDistancia) + ",";
+  json += "\"umbral_luz\":" + String(umbralLuz) + ",\"motivo\":\"" + motivoActual + "\",";
+  json += "\"evento\":\"" + ultimoEvento + "\",\"total_eventos\":" + String(totalEventos) + ",";
+  json += "\"firma_sha256\":\"" + firma + "\"}";
   return json;
 }
-
-// =========================================================================
-// 5. CONTROL DE ACTUADORES Y GESTIÓN DE EVENTOS
-// =========================================================================
-void abrirBarrera() {
-  barrera.write(90);
-  digitalWrite(ledRojo, HIGH);
-  digitalWrite(ledVerde, LOW);
-  estaAbierta = true;
+void responderEstado() {
+  server.sendHeader("Cache-Control", "no-store");
+  server.send(200, "application/json", construirJsonEstado());
 }
 
-void cerrarBarrera() {
-  barrera.write(0);
-  digitalWrite(ledRojo, LOW);
-  digitalWrite(ledVerde, HIGH);
-  estaAbierta = false;
-}
-
-void guardarEnColaOffline(String evento, int dist, int luz, String firma) {
-  if (totalOffline < MAX_OFFLINE) {
-    colaOffline[totalOffline] = {evento, dist, luz, millis(), firma};
-    totalOffline++;
-  } else {
-    // Desplaza el más antiguo (FIFO) si la cola está llena
-    for (int i = 1; i < MAX_OFFLINE; i++) {
-      colaOffline[i - 1] = colaOffline[i];
-    }
-    colaOffline[MAX_OFFLINE - 1] = {evento, dist, luz, millis(), firma};
-  }
-  Serial.println("[OFFLINE_STORAGE] Evento almacenado en memoria local (" + String(totalOffline) + "/" + String(MAX_OFFLINE) + ")");
-}
-
-void registrarEvento(int dist, int luz, String evento) {
-  String datosFirma = evento + "|" + String(dist) + "|" + String(luz) + "|" + API_SECRET;
-  String firma      = generarSHA256(datosFirma);
-
-  String jsonPayload = "{";
-  jsonPayload += "\"evento\":\"" + evento + "\",";
-  jsonPayload += "\"distancia\":" + String(dist) + ",";
-  jsonPayload += "\"luz\":" + String(luz) + ",";
-  jsonPayload += "\"firma_sha256\":\"" + firma + "\"";
-  jsonPayload += "}";
-
-  Serial.println("[EVENTO_IoT] " + jsonPayload);
-
-  if (WiFi.status() == WL_CONNECTED) {
-    if (usarBackendHttp) {
-      WiFiClient client;
-      HTTPClient http;
-      http.begin(client, serverUrl);
-      http.addHeader("Content-Type", "application/json");
-      int code = http.POST(jsonPayload);
-      if (code <= 0) {
-        guardarEnColaOffline(evento, dist, luz, firma);
-      }
-      http.end();
-    }
-  } else {
-    // Plan de contingencia: guarda localmente mientras no haya Wi-Fi
-    guardarEnColaOffline(evento, dist, luz, firma);
-  }
-}
-
-void sincronizarColaOffline() {
-  if (totalOffline == 0 || WiFi.status() != WL_CONNECTED) return;
-
-  Serial.println("[SYNC_OFFLINE] Sincronizando " + String(totalOffline) + " eventos almacenados...");
-  if (usarBackendHttp) {
-    WiFiClient client;
-    HTTPClient http;
-    for (int i = 0; i < totalOffline; i++) {
-      String payload = "{\"evento\":\"" + colaOffline[i].evento + "\",\"distancia\":" +
-                       String(colaOffline[i].distancia) + ",\"luz\":" + String(colaOffline[i].luz) +
-                       ",\"firma_sha256\":\"" + colaOffline[i].firmaSha256 + "\"}";
-      http.begin(client, serverUrl);
-      http.addHeader("Content-Type", "application/json");
-      http.POST(payload);
-      http.end();
-    }
-  }
-  totalOffline = 0;
-  Serial.println("[SYNC_OFFLINE] Sincronización completada.");
-}
-
-// =========================================================================
-// 6. RECEPCIÓN DE INSTRUCCIONES POR SERIAL UART (Rúbrica 3.1.3.9)
-// =========================================================================
-void procesarComandosSerial() {
-  if (Serial.available() > 0) {
-    String cmd = Serial.readStringUntil('\n');
-    cmd.trim();
-    cmd.toUpperCase();
-
-    if (cmd == "ABRIR") {
-      aperturaManual = true;
-      abrirBarrera();
-      registrarEvento(ultimaDistancia, ultimaLuz, "APERTURA_SERIAL");
-      Serial.println("[RX_SERIAL] OK -> Barrera abierta manualmente.");
-    } else if (cmd == "CERRAR") {
-      aperturaManual = true;
-      cerrarBarrera();
-      registrarEvento(ultimaDistancia, ultimaLuz, "CIERRE_SERIAL");
-      Serial.println("[RX_SERIAL] OK -> Barrera cerrada manualmente.");
-    } else if (cmd == "AUTO") {
-      aperturaManual = false;
-      Serial.println("[RX_SERIAL] OK -> Modo automatico por sensores reactivado.");
-    } else if (cmd == "ESTADO") {
-      Serial.println("[RX_SERIAL] " + construirJsonEstado());
-    } else if (cmd.startsWith("UMBRAL_DIST:")) {
-      int nuevoDist = cmd.substring(12).toInt();
-      if (nuevoDist > 0 && nuevoDist <= 400) {
-        umbralDistancia = nuevoDist;
-        Serial.println("[RX_SERIAL] Umbral distancia actualizado a " + String(umbralDistancia) + " cm");
-      }
-    } else if (cmd.startsWith("UMBRAL_LUZ:")) {
-      int nuevoLuz = cmd.substring(11).toInt();
-      if (nuevoLuz >= 0 && nuevoLuz <= 1023) {
-        umbralLuz = nuevoLuz;
-        Serial.println("[RX_SERIAL] Umbral luz actualizado a " + String(umbralLuz));
-      }
-    }
-  }
-}
-
-// =========================================================================
-// 7. CONFIGURACIÓN DE ENDPOINTS HTTP PARA LA APP ANDROID
-// =========================================================================
-void configurarServidorWeb() {
+void configurarServidor() {
+  server.on("/", HTTP_GET, responderEstado);
+  server.on("/estado", HTTP_GET, responderEstado);
+  server.on("/status", HTTP_GET, responderEstado);
+  server.on("/datos", HTTP_GET, responderEstado);
+  server.on("/sensores", HTTP_GET, responderEstado);
+  server.on("/lectura", HTTP_GET, responderEstado);
+  server.on("/api/estado", HTTP_GET, responderEstado);
   server.on("/abrir", HTTP_GET, []() {
-    aperturaManual = true;
-    abrirBarrera();
-    registrarEvento(ultimaDistancia, ultimaLuz, "APERTURA_REMOTA_APP");
-    server.sendHeader("Access-Control-Allow-Origin", "*");
-    server.send(200, "application/json", construirJsonEstado());
+    aperturaManual = true; abrirBarrera("APERTURA_MANUAL_APP"); responderEstado();
   });
-
   server.on("/cerrar", HTTP_GET, []() {
-    aperturaManual = true;
-    cerrarBarrera();
-    registrarEvento(ultimaDistancia, ultimaLuz, "CIERRE_REMOTO_APP");
-    server.sendHeader("Access-Control-Allow-Origin", "*");
-    server.send(200, "application/json", construirJsonEstado());
+    aperturaManual = true; cerrarBarrera(); registrarEvento("CIERRE_MANUAL_APP"); responderEstado();
   });
-
   server.on("/auto", HTTP_GET, []() {
-    aperturaManual = false;
-    server.sendHeader("Access-Control-Allow-Origin", "*");
-    server.send(200, "application/json", construirJsonEstado());
+    aperturaManual = false; motivoActual = "MODO_AUTOMATICO"; responderEstado();
   });
-
-  server.on("/estado", HTTP_GET, []() {
-    server.sendHeader("Access-Control-Allow-Origin", "*");
-    server.send(200, "application/json", construirJsonEstado());
-  });
-
   server.on("/config", HTTP_GET, []() {
-    if (server.hasArg("dist")) umbralDistancia = server.arg("dist").toInt();
-    if (server.hasArg("luz"))  umbralLuz       = server.arg("luz").toInt();
-    server.sendHeader("Access-Control-Allow-Origin", "*");
-    server.send(200, "application/json", construirJsonEstado());
-  });
-
-  server.on("/offline", HTTP_GET, []() {
-    String lista = "[";
-    for (int i = 0; i < totalOffline; i++) {
-      if (i > 0) lista += ",";
-      lista += "{\"evento\":\"" + colaOffline[i].evento + "\",\"distancia\":" +
-               String(colaOffline[i].distancia) + ",\"luz\":" + String(colaOffline[i].luz) +
-               ",\"firma_sha256\":\"" + colaOffline[i].firmaSha256 + "\"}";
+    if (server.hasArg("dist")) {
+      int v = server.arg("dist").toInt(); if (v >= 1 && v <= 400) umbralDistancia = v;
     }
-    lista += "]";
-    server.sendHeader("Access-Control-Allow-Origin", "*");
-    server.send(200, "application/json", lista);
+    if (server.hasArg("luz")) {
+      int v = server.arg("luz").toInt(); if (v >= 0 && v <= 1023) umbralLuz = v;
+    }
+    responderEstado();
   });
-
+  server.on("/eventos", HTTP_GET, []() {
+    String json = "[";
+    for (uint8_t i = 0; i < totalEventos; i++) {
+      if (i) json += ",";
+      json += "{\"evento\":\"" + eventos[i].tipo + "\",\"distancia\":" + String(eventos[i].distancia);
+      json += ",\"luz\":" + String(eventos[i].luz) + ",\"firma_sha256\":\"" + eventos[i].firma + "\"}";
+    }
+    json += "]";
+    server.send(200, "application/json", json);
+  });
+  server.onNotFound([]() { server.send(404, "application/json", "{\"status\":\"error\"}"); });
   server.begin();
 }
 
-// =========================================================================
-// 8. SETUP Y LOOP PRINCIPAL NO BLOQUEANTE
-// =========================================================================
+void iniciarWiFi() {
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.setSleepMode(WIFI_NONE_SLEEP);
+  bool ok = WiFi.softAP(AP_SSID, AP_PASSWORD);
+  Serial.println(ok ? "[AP] Red local activa" : "[AP] Error al iniciar AP");
+  Serial.print("[AP] SSID: "); Serial.println(AP_SSID);
+  Serial.print("[AP] IP: "); Serial.println(WiFi.softAPIP());
+  if (strlen(STA_SSID) > 0) {
+    WiFi.begin(STA_SSID, STA_PASSWORD);
+    uint8_t n = 0;
+    while (WiFi.status() != WL_CONNECTED && n++ < 12) delay(500);
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.print("[STA] IP externa: "); Serial.println(WiFi.localIP());
+    } else Serial.println("[STA] No conectó; AP local continúa disponible.");
+  }
+}
+
+void procesarSerial() {
+  if (!Serial.available()) return;
+  String cmd = Serial.readStringUntil('\n'); cmd.trim(); cmd.toUpperCase();
+  if (cmd == "ABRIR") { aperturaManual = true; abrirBarrera("APERTURA_SERIAL"); }
+  else if (cmd == "CERRAR") { aperturaManual = true; cerrarBarrera(); registrarEvento("CIERRE_SERIAL"); }
+  else if (cmd == "AUTO") { aperturaManual = false; Serial.println("[SERIAL] AUTO"); }
+  else if (cmd == "ESTADO") Serial.println(construirJsonEstado());
+  else if (cmd == "CALIBRAR") {
+    long suma = 0; for (uint8_t i = 0; i < 10; i++) { suma += analogRead(LDR_PIN); delay(20); }
+    ultimaLuz = suma / 10; umbralLuz = constrain(ultimaLuz + 120, 0, 1023);
+    Serial.println("[CALIBRACION] Umbral: " + String(umbralLuz));
+  }
+}
+
 void setup() {
-  Serial.begin(115200);
-  delay(200);
-  Serial.println("\n=== SISTEMA DE CONTROL DE ACCESO OT/IoT (WEMOS D1) ===");
-
-  pinMode(trigPin, OUTPUT);
-  pinMode(echoPin, INPUT);
-  pinMode(ledVerde, OUTPUT);
-  pinMode(ledRojo, OUTPUT);
-
-  barrera.attach(servoPin);
-
-  // Auto-test inicial de actuadores al energizar
-  digitalWrite(ledVerde, HIGH);
-  digitalWrite(ledRojo, HIGH);
-  barrera.write(90);
-  delay(600);
-  cerrarBarrera();
-
-  // Configuración Wi-Fi con ahorro energético (Rúbrica 3.1.3.10)
-  WiFi.mode(WIFI_STA);
-  WiFi.setSleepMode(WIFI_LIGHT_SLEEP);
-  WiFi.begin(ssid, password);
-
-  Serial.print("Conectando a Wi-Fi");
-  int intentos = 0;
-  while (WiFi.status() != WL_CONNECTED && intentos < 16) {
-    delay(500);
-    Serial.print(".");
-    intentos++;
-  }
-
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.print("\n[WIFI_OK] IP asignada para App Android: ");
-    Serial.println(WiFi.localIP());
-  } else {
-    Serial.println("\n[WIFI_CONTINGENCIA] Operando en modo local autónomo (reintentará en 10s).");
-  }
-
-  configurarServidorWeb();
-  Serial.println("Comandos Serial disponibles: ABRIR | CERRAR | AUTO | ESTADO | UMBRAL_DIST:20 | UMBRAL_LUZ:450");
+  Serial.begin(115200); delay(150);
+  pinMode(TRIG_PIN, OUTPUT); pinMode(ECHO_PIN, INPUT);
+  pinMode(LED_ROJO, OUTPUT); pinMode(LED_VERDE, OUTPUT);
+  digitalWrite(TRIG_PIN, LOW);
+  barrera.attach(SERVO_PIN); barrera.write(0);
+  digitalWrite(LED_ROJO, LOW); digitalWrite(LED_VERDE, HIGH);
+  iniciarWiFi(); configurarServidor();
+  Serial.println("[HTTP] Servidor listo. Comandos: ABRIR/CERRAR/AUTO/ESTADO/CALIBRAR");
 }
 
 void loop() {
-  server.handleClient();
-  procesarComandosSerial();
-
+  server.handleClient(); procesarSerial();
   unsigned long ahora = millis();
-
-  // 1. Reconexión automática no bloqueante (Rúbrica 3.1.1.3)
-  if (ahora - tAnteriorReconexion >= INTERVALO_RECONEXION) {
-    tAnteriorReconexion = ahora;
-    if (WiFi.status() != WL_CONNECTED) {
-      Serial.println("[WIFI_RECONNECT] Reintentando enlace inalámbrico...");
-      WiFi.reconnect();
-    } else if (totalOffline > 0) {
-      sincronizarColaOffline();
-    }
+  if (ahora - tReconexion >= INTERVALO_RECONEXION) {
+    tReconexion = ahora;
+    if (strlen(STA_SSID) > 0 && WiFi.status() != WL_CONNECTED) WiFi.begin(STA_SSID, STA_PASSWORD);
   }
-
-  // 2. Lectura periódica de sensores (Rúbrica 3.1.3.8)
-  if (ahora - tAnteriorSensores >= INTERVALO_SENSORES) {
-    tAnteriorSensores = ahora;
-
-    // Medición HC-SR04
-    digitalWrite(trigPin, LOW);
-    delayMicroseconds(2);
-    digitalWrite(trigPin, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(trigPin, LOW);
-
-    long duracion = pulseIn(echoPin, HIGH, 30000);
-    int distancia = duracion / 58;
-    if (distancia == 0) distancia = 400;
-    ultimaDistancia = distancia;
-
-    // Medición LDR
-    ultimaLuz = analogRead(ldrPin);
-
-    // Lógica automática (solo si no hay anulación manual desde App o Serial)
+  if (ahora - tSensores >= INTERVALO_SENSORES) {
+    tSensores = ahora;
+    ultimaDistancia = leerDistanciaCm();
+    ultimaLuz = analogRead(LDR_PIN);
     if (!aperturaManual) {
-      bool condicionApertura = (ultimaDistancia > 0 && ultimaDistancia <= umbralDistancia && ultimaLuz < umbralLuz);
-
-      if (condicionApertura && !estaAbierta) {
-        abrirBarrera();
-        registrarEvento(ultimaDistancia, ultimaLuz, "BARRERA_ABIERTA_AUTO");
-      } else if (!condicionApertura && estaAbierta) {
-        cerrarBarrera();
-        registrarEvento(ultimaDistancia, ultimaLuz, "BARRERA_CERRADA_AUTO");
-      }
+      // Lógica solicitada: proximidad O lectura LDR por encima del umbral.
+      bool proximidad = ultimaDistancia > 0 && ultimaDistancia <= umbralDistancia;
+      bool luzDetectada = ultimaLuz >= umbralLuz;
+      if (proximidad || luzDetectada) {
+        tMantenerAbierta = ahora;
+        abrirBarrera(proximidad ? "PROXIMIDAD_DETECTADA" : "LUZ_DETECTADA");
+      } else if (estaAbierta && ahora - tMantenerAbierta >= TIEMPO_HOLD_MS) cerrarBarrera();
     }
   }
-
-  // 3. Envío periódico de telemetría por puerto Serial
-  if (ahora - tAnteriorSerial >= INTERVALO_SERIAL) {
-    tAnteriorSerial = ahora;
-    Serial.print("[TX_SERIAL] Dist: ");
-    Serial.print(ultimaDistancia);
-    Serial.print(" cm | Luz: ");
-    Serial.print(ultimaLuz);
-    Serial.print(" | Barrera: ");
-    Serial.print(estaAbierta ? "ABIERTA" : "CERRADA");
-    Serial.print(" | Modo: ");
-    Serial.println(aperturaManual ? "MANUAL" : "AUTO");
+  if (ahora - tSerial >= INTERVALO_SERIAL) {
+    tSerial = ahora;
+    Serial.printf("[SENSORES] Dist:%d cm | LDR:%d/%d | Barrera:%s | Modo:%s\n",
+      ultimaDistancia, ultimaLuz, umbralLuz, estaAbierta ? "ABIERTA" : "CERRADA",
+      aperturaManual ? "MANUAL" : "AUTO");
   }
 }

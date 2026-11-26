@@ -162,9 +162,61 @@ class MainActivity : AppCompatActivity() {
         evaluarSistema()
     }
 
+    private val wemosPollHandler = Handler(Looper.getMainLooper())
+    private var wemosPollActivo = false
+    private var ultimoEstadoFisico: Boolean? = null
+    private val wemosPollRunnable = object : Runnable {
+        override fun run() {
+            if (!wemosPollActivo || !::etIpWemos.isInitialized) return
+            val ip = etIpWemos.text.toString().trim()
+            if (ip.isNotBlank()) {
+                wemos.consultarEstado(ip) { exito, estado, mensaje ->
+                    runOnUiThread {
+                        if (isFinishing || isDestroyed) return@runOnUiThread
+                        if (exito && estado != null) {
+                            tvWirelessStatus.text = "Estado: WEMOS CONECTADO (${estado.ip})"
+                            tvDistanceValue.text = if (estado.distancia >= 0) "${estado.distancia} cm" else "N/A"
+                            tvLightValue.text = if (estado.luz >= 0) estado.luz.toString() else "N/A"
+                            if (estado.distancia >= 0) seekBarDistance.progress = estado.distancia.coerceIn(0, seekBarDistance.max)
+                            if (estado.luz >= 0) seekBarLight.progress = estado.luz.coerceIn(0, seekBarLight.max)
+                            actualizarUIEstado(estado.abierta, estado.distancia.coerceAtLeast(0), estado.luz.coerceAtLeast(0), false)
+                            tvEstado.text = "WeMos OK | ${estado.barrera.uppercase()} | ${estado.modo.uppercase()}\n" +
+                                "Motivo: ${estado.motivo} | Eventos recientes: ${estado.totalEventos}"
+                            if (ultimoEstadoFisico != estado.abierta) {
+                                SecurityManager.logEvent("WEMOS",
+                                    if (estado.abierta) "BARRERA_ABIERTA" else "BARRERA_CERRADA",
+                                    "Estado recibido desde hardware. Motivo: ${estado.motivo}", true)
+                                ultimoEstadoFisico = estado.abierta
+                            }
+                        } else {
+                            tvWirelessStatus.text = "Estado: WEMOS SIN CONEXIÓN"
+                            tvEstado.text = mensaje
+                        }
+                    }
+                }
+            }
+            wemosPollHandler.postDelayed(this, 1000)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        wemosPollActivo = true
+        wemosPollHandler.removeCallbacks(wemosPollRunnable)
+        wemosPollHandler.post(wemosPollRunnable)
+    }
+
+    override fun onPause() {
+        wemosPollActivo = false
+        wemosPollHandler.removeCallbacks(wemosPollRunnable)
+        super.onPause()
+    }
+
     override fun onDestroy() {
-        super.onDestroy()
+        wemosPollActivo = false
+        wemosPollHandler.removeCallbacks(wemosPollRunnable)
         clockHandler.removeCallbacks(clockRunnable)
+        super.onDestroy()
     }
 
     private fun inicializarVistas(operatorUser: String) {
@@ -554,7 +606,7 @@ class MainActivity : AppCompatActivity() {
                 R.id.rbModeForcedClosed -> esAlerta = false
                 else -> {
                     // Modo Automático por Sensores
-                    esAlerta = (distancia < umbralDistancia) && (luz < umbralLuz)
+                    esAlerta = (distancia in 1..umbralDistancia) || (luz >= umbralLuz)
                 }
             }
         }
@@ -570,22 +622,8 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        // Sincronización en tiempo real con hardware físico WeMos D1 (LED Rojo/Verde + Servo)
-        if (lastAlertState != esAlerta) {
-            if (::etIpWemos.isInitialized) {
-                val ipWemos = etIpWemos.text.toString().trim()
-                if (ipWemos.isNotEmpty()) {
-                    val comando = if (esAlerta) "abrir" else "cerrar"
-                    wemos.enviarComando(ipWemos, comando) { _, mensaje ->
-                        runOnUiThread {
-                            if (::tvEstado.isInitialized) {
-                                tvEstado.text = mensaje
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        // El estado físico proviene del endpoint /estado consultado cada segundo.
+        // Los controles de demostración locales no deben sobrescribir el estado del sensor.
         lastAlertState = esAlerta
 
         actualizarUIEstado(esAlerta, distancia, luz, isEmergencyActive)
