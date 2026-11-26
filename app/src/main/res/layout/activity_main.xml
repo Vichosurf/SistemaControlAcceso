@@ -687,6 +687,103 @@
                     android:textSize="12sp"
                     android:textStyle="bold" />
 
+                <!-- Card Control Directo WeMos D1 (HTTP REST / SHA-256) -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    app:cardBackgroundColor="#1E293B"
+                    app:cardCornerRadius="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Control Directo WeMos D1 (HTTP REST &amp; SHA-256)"
+                            android:textColor="#38BDF8"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="Dirección IP de la WeMos D1:"
+                            android:textColor="#94A3B8"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <EditText
+                            android:id="@+id/etIpWemos"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:hint="Ej: 192.168.43.120"
+                            android:inputType="text"
+                            android:text="192.168.43.120"
+                            android:textColor="#F8FAFC"
+                            android:textColorHint="#64748B"
+                            android:textSize="14sp" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:orientation="horizontal">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnAbrir"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_marginEnd="4dp"
+                                android:layout_weight="1"
+                                android:text="ABRIR"
+                                android:textColor="#FFFFFF"
+                                app:backgroundTint="#10B981" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnCerrar"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_marginStart="2dp"
+                                android:layout_marginEnd="2dp"
+                                android:layout_weight="1"
+                                android:text="CERRAR"
+                                android:textColor="#FFFFFF"
+                                app:backgroundTint="#EF4444" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnEstado"
+                                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_marginStart="4dp"
+                                android:layout_weight="1"
+                                android:text="ESTADO"
+                                android:textColor="#38BDF8"
+                                app:strokeColor="#38BDF8" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tvEstado"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:background="#0F172A"
+                            android:fontFamily="monospace"
+                            android:padding="10dp"
+                            android:text="Estado WeMos D1: Esperando orden..."
+                            android:textColor="#34D399"
+                            android:textSize="12sp" />
+
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
                 <!-- Card Estado de Enlace -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"

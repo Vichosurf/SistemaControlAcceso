@@ -84,7 +84,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etCommandPayload: EditText
     private lateinit var btnSendWirelessCmd: Button
 
-    // Vistas - Conexión Inalámbrica
+    // Vistas - Conexión Inalámbrica y Control WeMos D1
     private lateinit var tvWirelessStatus: TextView
     private lateinit var tvWirelessTech: TextView
     private lateinit var rgWirelessTech: RadioGroup
@@ -97,7 +97,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvWirelessFrameLog: TextView
     private lateinit var etEspIp: EditText
 
-    // Gestor Inalámbrico
+    private lateinit var etIpWemos: EditText
+    private lateinit var btnAbrir: Button
+    private lateinit var btnCerrar: Button
+    private lateinit var btnEstado: Button
+    private lateinit var tvEstado: TextView
+
+    // Controlador WeMos D1 y Gestor Inalámbrico
+    private val wemos = WemosController()
     private lateinit var wirelessManager: WirelessConnectionManager
 
     // Umbrales Dinámicos OT
@@ -142,6 +149,7 @@ class MainActivity : AppCompatActivity() {
         solicitarPermisosSistema()
         configurarNavegacion()
         configurarGestorInalambrico()
+        configurarControlWemos()
         configurarListenersMonitoreo()
         configurarListenersActivador()
 
@@ -204,7 +212,7 @@ class MainActivity : AppCompatActivity() {
         etCommandPayload = findViewById(R.id.etCommandPayload)
         btnSendWirelessCmd = findViewById(R.id.btnSendWirelessCmd)
 
-        // Conexión Inalámbrica
+        // Conexión Inalámbrica y Control WeMos D1
         tvWirelessStatus = findViewById(R.id.tvWirelessStatus)
         tvWirelessTech = findViewById(R.id.tvWirelessTech)
         rgWirelessTech = findViewById(R.id.rgWirelessTech)
@@ -216,6 +224,12 @@ class MainActivity : AppCompatActivity() {
         tvMetricRssi = findViewById(R.id.tvMetricRssi)
         tvWirelessFrameLog = findViewById(R.id.tvWirelessFrameLog)
         etEspIp = findViewById(R.id.etEspIp)
+
+        etIpWemos = findViewById(R.id.etIpWemos)
+        btnAbrir = findViewById(R.id.btnAbrir)
+        btnCerrar = findViewById(R.id.btnCerrar)
+        btnEstado = findViewById(R.id.btnEstado)
+        tvEstado = findViewById(R.id.tvEstado)
 
         btnSettings.setOnClickListener {
             val root = findViewById<View>(R.id.main)
@@ -332,6 +346,40 @@ class MainActivity : AppCompatActivity() {
                     false
                 }
                 else -> false
+            }
+        }
+    }
+
+    private fun configurarControlWemos() {
+        btnAbrir.setOnClickListener {
+            tvEstado.text = "Enviando orden de apertura..."
+            wemos.enviarComando(etIpWemos.text.toString(), "abrir") { exito, mensaje ->
+                runOnUiThread {
+                    tvEstado.text = mensaje
+                    if (exito) {
+                        SecurityManager.logEvent("WEMOS", "CMD_ABRIR", "Orden de apertura enviada a WeMos D1", true)
+                    }
+                }
+            }
+        }
+
+        btnCerrar.setOnClickListener {
+            tvEstado.text = "Enviando orden de cierre..."
+            wemos.enviarComando(etIpWemos.text.toString(), "cerrar") { exito, mensaje ->
+                runOnUiThread {
+                    tvEstado.text = mensaje
+                    if (exito) {
+                        SecurityManager.logEvent("WEMOS", "CMD_CERRAR", "Orden de cierre enviada a WeMos D1", true)
+                    }
+                }
+            }
+        }
+
+        btnEstado.setOnClickListener {
+            wemos.enviarComando(etIpWemos.text.toString(), "estado") { exito, mensaje ->
+                runOnUiThread {
+                    tvEstado.text = mensaje
+                }
             }
         }
     }
