@@ -207,7 +207,7 @@ class MainActivity : AppCompatActivity() {
                             FirebaseEventSync.sincronizarPendientes(applicationContext) { ok, mensaje ->
                                 runOnUiThread {
                                     if (!isFinishing && !isDestroyed && ok) {
-                                        tvEstado.text = "WeMos OK | ${estado.barrera.uppercase()} | ${estado.modo.uppercase()}\\n" +
+                                        tvEstado.text = "WeMos OK | ${estado.barrera.uppercase()} | ${estado.modo.uppercase()}\n" +
                                             "Motivo: ${estado.motivo} | Firebase: ${mensaje}"
                                     }
                                 }
