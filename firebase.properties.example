@@ -1,0 +1,3 @@
+# Copiar como firebase.properties en la raíz del proyecto.
+# Usar el OAuth Client ID de tipo Web, no el ID Android.
+google_web_client_id=TU_CLIENTE_OAUTH_WEB.apps.googleusercontent.com

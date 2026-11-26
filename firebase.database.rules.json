@@ -1,0 +1,9 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "sensores": { ".read": "auth != null", ".write": "auth != null" },
+    "acceso": { ".read": "auth != null", ".write": "auth != null" },
+    "comandos": { ".read": "auth != null", ".write": "auth != null" }
+  }
+}
