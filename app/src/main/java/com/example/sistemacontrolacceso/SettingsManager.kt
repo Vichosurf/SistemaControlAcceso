@@ -10,81 +10,53 @@ import android.widget.Button
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import androidx.appcompat.app.AlertDialog
+import com.google.firebase.auth.FirebaseAuth
 import java.util.Locale
 
-/**
- * Gestor de Configuración General del Sistema:
- * 1. Cambio de Fondo / Tema (Nocturno vs Diurno).
- * 2. Cambio de Idioma (Español vs English).
- * 3. Cerrar Sesión con confirmación y registro en auditoría ISO 27001.
- */
 object SettingsManager {
-
     private const val PREFS_SETTINGS = "ot_settings_prefs"
-    private const val KEY_THEME = "theme_mode" // "NOCTURNO" | "DIURNO"
-    private const val KEY_LANG = "language_code" // "es" | "en"
+    private const val KEY_THEME = "theme_mode"
+    private const val KEY_LANG = "language_code"
 
     const val THEME_NOCTURNO = "NOCTURNO"
     const val THEME_DIURNO = "DIURNO"
-
     const val LANG_ES = "es"
     const val LANG_EN = "en"
 
-    fun getThemeMode(context: Context): String {
-        val prefs = context.getSharedPreferences(PREFS_SETTINGS, Context.MODE_PRIVATE)
-        return prefs.getString(KEY_THEME, THEME_NOCTURNO) ?: THEME_NOCTURNO
-    }
+    fun getThemeMode(context: Context): String =
+        context.getSharedPreferences(PREFS_SETTINGS, Context.MODE_PRIVATE)
+            .getString(KEY_THEME, THEME_NOCTURNO) ?: THEME_NOCTURNO
 
     fun setThemeMode(context: Context, theme: String) {
-        context.getSharedPreferences(PREFS_SETTINGS, Context.MODE_PRIVATE)
-            .edit()
-            .putString(KEY_THEME, theme)
-            .apply()
+        context.getSharedPreferences(PREFS_SETTINGS, Context.MODE_PRIVATE).edit().putString(KEY_THEME, theme).apply()
     }
 
-    fun getLanguage(context: Context): String {
-        val prefs = context.getSharedPreferences(PREFS_SETTINGS, Context.MODE_PRIVATE)
-        return prefs.getString(KEY_LANG, LANG_ES) ?: LANG_ES
-    }
+    fun getLanguage(context: Context): String =
+        context.getSharedPreferences(PREFS_SETTINGS, Context.MODE_PRIVATE)
+            .getString(KEY_LANG, LANG_ES) ?: LANG_ES
 
     fun setLanguage(context: Context, langCode: String) {
-        context.getSharedPreferences(PREFS_SETTINGS, Context.MODE_PRIVATE)
-            .edit()
-            .putString(KEY_LANG, langCode)
-            .apply()
+        context.getSharedPreferences(PREFS_SETTINGS, Context.MODE_PRIVATE).edit().putString(KEY_LANG, langCode).apply()
     }
 
-    /**
-     * Aplica la configuración de idioma al Context/Resources de la aplicación.
-     */
     fun applyLocale(context: Context) {
-        val lang = getLanguage(context)
-        val locale = Locale(lang)
+        val locale = Locale(getLanguage(context))
         Locale.setDefault(locale)
-
         val config = Configuration(context.resources.configuration)
         config.setLocale(locale)
         @Suppress("DEPRECATION")
         context.resources.updateConfiguration(config, context.resources.displayMetrics)
     }
 
-    /**
-     * Aplica el fondo del tema seleccionado (Nocturno vs Diurno).
-     */
     fun applyBackgroundTheme(activity: Activity, rootLayout: View, isLoginScreen: Boolean) {
-        val theme = getThemeMode(activity)
-        if (theme == THEME_DIURNO) {
-            val bgRes = if (isLoginScreen) R.drawable.bg_login_day_gradient else R.drawable.bg_day_gradient
-            rootLayout.setBackgroundResource(bgRes)
+        val bg = if (getThemeMode(activity) == THEME_DIURNO) {
+            if (isLoginScreen) R.drawable.bg_login_day_gradient else R.drawable.bg_day_gradient
         } else {
-            val bgRes = if (isLoginScreen) R.drawable.bg_login_gradient else R.drawable.bg_app_gradient
-            rootLayout.setBackgroundResource(bgRes)
+            if (isLoginScreen) R.drawable.bg_login_gradient else R.drawable.bg_app_gradient
         }
+        rootLayout.setBackgroundResource(bg)
     }
 
-    /**
-     * Muestra el diálogo modal de Configuración.
-     */
     fun showSettingsDialog(
         activity: Activity,
         rootView: View,
@@ -93,90 +65,52 @@ object SettingsManager {
         onSettingsChanged: () -> Unit = {},
         onLogout: (() -> Unit)? = null
     ) {
-        val currentTheme = getThemeMode(activity)
-        val currentLang = getLanguage(activity)
-
         val dialogView = LayoutInflater.from(activity).inflate(R.layout.dialog_settings, null)
-
         val rgTheme = dialogView.findViewById<RadioGroup>(R.id.rgTheme)
         val rbThemeNight = dialogView.findViewById<RadioButton>(R.id.rbThemeNight)
         val rbThemeDay = dialogView.findViewById<RadioButton>(R.id.rbThemeDay)
-
         val rgLanguage = dialogView.findViewById<RadioGroup>(R.id.rgLanguage)
         val rbLangEs = dialogView.findViewById<RadioButton>(R.id.rbLangEs)
         val rbLangEn = dialogView.findViewById<RadioButton>(R.id.rbLangEn)
+        val logoutButton = dialogView.findViewById<Button>(R.id.btnLogoutInDialog)
 
-        val btnLogoutInDialog = dialogView.findViewById<Button>(R.id.btnLogoutInDialog)
+        if (getThemeMode(activity) == THEME_DIURNO) rbThemeDay.isChecked = true else rbThemeNight.isChecked = true
+        if (getLanguage(activity) == LANG_EN) rbLangEn.isChecked = true else rbLangEs.isChecked = true
+        logoutButton.visibility = if (onLogout != null || !isLoginScreen) View.VISIBLE else View.GONE
 
-        // Estado inicial de los radios
-        if (currentTheme == THEME_DIURNO) {
-            rbThemeDay.isChecked = true
-        } else {
-            rbThemeNight.isChecked = true
-        }
-
-        if (currentLang == LANG_EN) {
-            rbLangEn.isChecked = true
-        } else {
-            rbLangEs.isChecked = true
-        }
-
-        if (onLogout != null || !isLoginScreen) {
-            btnLogoutInDialog.visibility = View.VISIBLE
-        } else {
-            btnLogoutInDialog.visibility = View.GONE
-        }
-
-        val dialog = AlertDialog.Builder(activity)
-            .setView(dialogView)
-            .create()
-
-        rgTheme.setOnCheckedChangeListener { _, checkedId ->
-            val selectedTheme = if (checkedId == R.id.rbThemeDay) THEME_DIURNO else THEME_NOCTURNO
-            if (selectedTheme != getThemeMode(activity)) {
-                setThemeMode(activity, selectedTheme)
+        val dialog = AlertDialog.Builder(activity).setView(dialogView).create()
+        rgTheme.setOnCheckedChangeListener { _, checked ->
+            val theme = if (checked == R.id.rbThemeDay) THEME_DIURNO else THEME_NOCTURNO
+            if (theme != getThemeMode(activity)) {
+                setThemeMode(activity, theme)
                 applyBackgroundTheme(activity, rootView, isLoginScreen)
                 onSettingsChanged()
             }
         }
-
-        rgLanguage.setOnCheckedChangeListener { _, checkedId ->
-            val selectedLang = if (checkedId == R.id.rbLangEn) LANG_EN else LANG_ES
-            if (selectedLang != getLanguage(activity)) {
-                setLanguage(activity, selectedLang)
+        rgLanguage.setOnCheckedChangeListener { _, checked ->
+            val language = if (checked == R.id.rbLangEn) LANG_EN else LANG_ES
+            if (language != getLanguage(activity)) {
+                setLanguage(activity, language)
                 applyLocale(activity)
                 activity.recreate()
             }
         }
-
-        btnLogoutInDialog.setOnClickListener {
+        logoutButton.setOnClickListener {
             dialog.dismiss()
-            confirmarCerrarSesion(activity, operatorUser, onLogout)
+            confirmLogout(activity, operatorUser, onLogout)
         }
-
-        dialogView.findViewById<Button>(R.id.btnCloseSettings).setOnClickListener {
-            dialog.dismiss()
-        }
-
+        dialogView.findViewById<Button>(R.id.btnCloseSettings).setOnClickListener { dialog.dismiss() }
         dialog.show()
     }
 
-    private fun confirmarCerrarSesion(
-        activity: Activity,
-        user: String,
-        onLogout: (() -> Unit)?
-    ) {
-        val isEng = getLanguage(activity) == LANG_EN
-        val title = if (isEng) "Logout Confirmation" else "Confirmar Cierre de Sesión"
-        val message = if (isEng) "Are you sure you want to log out of the OT System?" else "¿Está seguro que desea cerrar sesión en el Sistema OT?"
-        val posBtn = if (isEng) "Yes, Logout" else "Sí, Cerrar Sesión"
-        val negBtn = if (isEng) "Cancel" else "Cancelar"
-
+    private fun confirmLogout(activity: Activity, user: String, onLogout: (() -> Unit)?) {
+        val english = getLanguage(activity) == LANG_EN
         AlertDialog.Builder(activity)
-            .setTitle("🚪 $title")
-            .setMessage(message)
-            .setPositiveButton(posBtn) { _, _ ->
-                SecurityManager.logEvent(user, "LOGOUT", "Cierre de sesión de operador realizado", true)
+            .setTitle(if (english) "Logout Confirmation" else "Confirmar Cierre de Sesión")
+            .setMessage(if (english) "Are you sure you want to log out?" else "¿Está seguro que desea cerrar sesión?")
+            .setPositiveButton(if (english) "Yes, Logout" else "Sí, Cerrar Sesión") { _, _ ->
+                SecurityManager.logEvent(user, "LOGOUT", "Cierre de sesión realizado", true)
+                try { FirebaseAuth.getInstance().signOut() } catch (_: Exception) { }
                 onLogout?.invoke() ?: run {
                     val intent = Intent(activity, LoginActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -184,7 +118,7 @@ object SettingsManager {
                     activity.finish()
                 }
             }
-            .setNegativeButton(negBtn, null)
+            .setNegativeButton(if (english) "Cancel" else "Cancelar", null)
             .show()
     }
 }

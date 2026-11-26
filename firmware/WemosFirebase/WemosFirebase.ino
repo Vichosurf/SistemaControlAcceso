@@ -67,7 +67,7 @@ void pollCommand() {
   json->get(value, "payload");
   String payload = value.stringValue;
   json->get(value, "timestamp");
-  unsigned long long timestamp = strtoull(value.stringValue.c_str(), nullptr, 10);
+  unsigned long long timestamp = (unsigned long long)value.doubleValue;
   json->get(value, "checksum");
   String received = value.stringValue;
 
@@ -82,6 +82,11 @@ void pollCommand() {
 }
 
 void publishSensors() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
   unsigned long duration = pulseIn(ECHO_PIN, HIGH, 30000UL);
   int distance = duration == 0 ? MAX_DISTANCE_CM : (int)(duration * 0.0343 / 2.0);
   int light = analogRead(LDR_PIN);
