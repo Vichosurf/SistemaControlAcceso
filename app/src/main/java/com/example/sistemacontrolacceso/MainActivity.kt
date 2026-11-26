@@ -218,7 +218,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         wemosPollActivo = false
-        wemosConsultaEnCurso = false
         wemosPollHandler.removeCallbacks(wemosPollRunnable)
         super.onPause()
     }
@@ -538,7 +537,7 @@ class MainActivity : AppCompatActivity() {
         seekBarDistance.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 tvDistanceValue.text = "$progress cm"
-                evaluarSistema()
+                if (fromUser) evaluarSistema()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
@@ -547,7 +546,7 @@ class MainActivity : AppCompatActivity() {
         seekBarLight.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 tvLightValue.text = progress.toString()
-                evaluarSistema()
+                if (fromUser) evaluarSistema()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
@@ -664,7 +663,11 @@ class MainActivity : AppCompatActivity() {
             tvLedGreenLabel.setTextColor(ContextCompat.getColor(this, R.color.text_muted))
             tvLedGreenLabel.setTypeface(null, Typeface.NORMAL)
 
-            tvLogicDescription.text = "¡ALERTA! Objeto a $distancia cm (< $umbralDistancia cm) en zona oscura ($luz < $umbralLuz)."
+            tvLogicDescription.text = if (distancia in 1..umbralDistancia) {
+                "¡ALERTA! Proximidad detectada a $distancia cm."
+            } else {
+                "¡ALERTA! Lectura LDR sobre el umbral: $luz ADC (umbral $umbralLuz)."
+            }
         } else {
             tvStatusHeader.text = if (isEmergency) "ESTADO: ANULACIÓN DE EMERGENCIA" else "ESTADO NORMAL (REPOSO)"
             tvBarrierState.text = "BARRERA CERRADA"
