@@ -2,7 +2,32 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /control_acceso_eventos/{eventId} {
-      allow create, update: if request.auth != null;
+      function validEvent() {
+        return request.auth != null
+          && request.resource.data.keys().hasAll([
+            'id', 'barrera', 'evento', 'distancia_cm', 'lectura_ldr',
+            'operador', 'fecha_local', 'origen', 'uid', 'fecha_servidor'
+          ])
+          && request.resource.data.keys().hasOnly([
+            'id', 'barrera', 'evento', 'distancia_cm', 'lectura_ldr',
+            'operador', 'fecha_local', 'origen', 'uid', 'fecha_servidor'
+          ])
+          && request.resource.data.id == eventId
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.origen == 'wemos_d1'
+          && request.resource.data.barrera in ['abierta', 'cerrada']
+          && request.resource.data.evento is string
+          && request.resource.data.distancia_cm is int
+          && request.resource.data.lectura_ldr is int
+          && request.resource.data.operador is string
+          && request.resource.data.fecha_local is string
+          && request.resource.data.fecha_servidor is timestamp;
+      }
+
+      allow create: if validEvent();
+      // Los reintentos con el mismo ID pueden llegar como escritura de actualización,
+      // pero solo el propietario original del documento puede repetir esa escritura.
+      allow update: if validEvent() && resource.data.uid == request.auth.uid;
       allow read, delete: if false;
     }
   }

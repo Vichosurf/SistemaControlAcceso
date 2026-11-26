@@ -34,21 +34,15 @@ Cada documento usa el UUID generado localmente como ID e incluye:
 - origen
 - uid
 
-## Reglas iniciales para pruebas
+## Reglas de Firestore
 
-Publica estas reglas en Firestore Rules después de habilitar Authentication. Estas reglas permiten a cualquier sesión autenticada crear o actualizar eventos, pero no leerlos ni eliminarlos desde la app cliente:
+El archivo firestore.rules limita las escrituras a usuarios autenticados y valida:
+- El UID del documento debe coincidir con el UID de Firebase Authentication.
+- El identificador del documento debe coincidir con el ID del evento.
+- Solo se aceptan los campos previstos, tipos de datos y estados de barrera válidos.
+- No se permite lectura ni eliminación desde la aplicación cliente.
 
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /control_acceso_eventos/{eventId} {
-      allow create, update: if request.auth != null;
-      allow read, delete: if false;
-    }
-  }
-}
-
-Advertencia: el inicio anónimo sirve para prototipos/pruebas y no demuestra la identidad real del operador. Para producción se debe vincular la identidad a Firebase Authentication o emitir tokens desde un backend confiable, además de endurecer las reglas y activar App Check.
+La regla permite actualizar únicamente el documento del mismo usuario para que un reintento idempotente de Firestore no duplique eventos. El despliegue sigue pendiente de autorización del propietario del proyecto.
 
 ## Funcionamiento Offline
 
