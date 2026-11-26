@@ -1,24 +1,68 @@
-# Configuración de Firebase para SistemaControlAcceso
+# Configuración Firebase — SistemaControlAcceso
 
-La integración con Firebase requiere el proyecto real del equipo. No subir el archivo google-services.json al repositorio público ni guardar claves privadas en el código fuente.
+## Servicios usados
 
-## Pasos pendientes
+- Firebase Authentication con proveedor anónimo para identificar la sesión de la instalación.
+- Cloud Firestore para guardar eventos de apertura/cierre del WeMos.
+- Crashlytics para recopilar informes de fallos Android.
 
-1. En Firebase Console, crear o abrir el proyecto del sistema.
-2. Registrar una aplicación Android con el identificador com.example.sistemacontrolacceso.
-3. Descargar google-services.json.
-4. Guardarlo localmente en app/google-services.json (no compartirlo en un repositorio público).
-5. Habilitar Firebase Authentication si se utilizará identidad de operador y elegir Firestore o Realtime Database para el historial.
-6. Definir reglas de seguridad para que solo usuarios autorizados puedan leer y escribir registros.
-7. Incorporar el plugin y las dependencias Firebase compatibles con las versiones Gradle del proyecto.
-8. Probar lectura/escritura, modo sin conexión y reintento de sincronización.
+## Registrar la aplicación
 
-## Cola local
+1. Abre Firebase Console y crea o selecciona el proyecto.
+2. Registra una app Android con el identificador exacto: com.example.sistemacontrolacceso.
+3. Descarga el archivo google-services.json.
+4. Colócalo en app/google-services.json. Está excluido de Git por seguridad.
+5. En Authentication > Sign-in method, habilita Anonymous.
+6. Crea una base de datos Cloud Firestore.
+7. En Crashlytics, habilita el servicio y ejecuta una compilación de prueba para validar el envío de informes.
 
-WemosEventStore guarda las transiciones de estado en SharedPreferences y permite recuperar eventos pendientes. La cola se limita a 200 registros. Los eventos solo deben marcarse como sincronizados después de recibir confirmación de Firebase.
+Los plugins de Google Services y Crashlytics se activan automáticamente cuando existe app/google-services.json. Sin ese archivo el proyecto conserva la compilación de desarrollo, pero la sincronización con Firebase no funcionará.
 
-## Limitaciones de seguridad actuales
+## Estructura de Firestore
 
-- SHA-256 en el firmware se utiliza como huella/checksum; no es HMAC y no autentica por sí solo el dispositivo.
-- El HTTP local no cifra el tráfico. Debe reservarse para la red de laboratorio y añadirse autenticación/autorización antes de producción.
-- El archivo google-services.json identifica la app Firebase, pero no reemplaza las reglas de seguridad del backend.
+Colección: control_acceso_eventos
+
+Cada documento usa el UUID generado localmente como ID e incluye:
+- id
+- barrera (abierta/cerrada)
+- evento (motivo reportado por el firmware)
+- distancia_cm
+- lectura_ldr
+- operador
+- fecha_local
+- fecha_servidor
+- origen
+- uid
+
+## Reglas iniciales para pruebas
+
+Publica estas reglas en Firestore Rules después de habilitar Authentication. Estas reglas permiten a cualquier sesión autenticada crear o actualizar eventos, pero no leerlos ni eliminarlos desde la app cliente:
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /control_acceso_eventos/{eventId} {
+      allow create, update: if request.auth != null;
+      allow read, delete: if false;
+    }
+  }
+}
+
+Advertencia: el inicio anónimo sirve para prototipos/pruebas y no demuestra la identidad real del operador. Para producción se debe vincular la identidad a Firebase Authentication o emitir tokens desde un backend confiable, además de endurecer las reglas y activar App Check.
+
+## Funcionamiento Offline
+
+1. Los cambios reales de estado se guardan primero en SharedPreferences.
+2. La app intenta iniciar sesión anónima si no existe sesión Firebase.
+3. Se envía un batch a Firestore usando los UUID locales como IDs de documento.
+4. Solo después de la confirmación del batch se eliminan los eventos de la cola local.
+5. Si falla Wi-Fi, autenticación o Firestore, los eventos permanecen en el dispositivo para el siguiente reintento.
+
+La cola local tiene un máximo de 200 eventos. La consulta al WeMos se realiza mientras MainActivity está activa; la sincronización no es un servicio persistente de fondo.
+
+## Seguridad
+
+- No publicar google-services.json en un repositorio público.
+- No almacenar claves privadas de cuentas de servicio en Android.
+- SHA-256 del firmware es un checksum y no autentica al dispositivo.
+- El enlace HTTP local con el WeMos no está cifrado; usarlo solo en una red de laboratorio protegida.

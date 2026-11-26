@@ -107,6 +107,7 @@ class MainActivity : AppCompatActivity() {
     // Controlador WeMos D1 y Gestor Inalámbrico
     private val wemos = WemosController()
     private lateinit var wirelessManager: WirelessConnectionManager
+    private var operadorActual: String = "desconocido"
 
     // Umbrales Dinámicos OT
     private var umbralDistancia = 20
@@ -143,6 +144,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val operatorUser = intent.getStringExtra("OPERATOR_USER") ?: "admin"
+        operadorActual = operatorUser
 
         inicializarVistas(operatorUser)
         tvOperatorInfo.text = "Operador: $operatorUser | ISO 27400 / 27001 Activo"
@@ -185,7 +187,8 @@ class MainActivity : AppCompatActivity() {
                             actualizarUIEstado(estado.abierta, estado.distancia.coerceAtLeast(0), estado.luz.coerceAtLeast(0), false)
                             tvEstado.text = "WeMos OK | ${estado.barrera.uppercase()} | ${estado.modo.uppercase()}\n" +
                                 "Motivo: ${estado.motivo} | Eventos recientes: ${estado.totalEventos}"
-                            if (ultimoEstadoFisico != estado.abierta) {
+                            // La primera lectura establece la referencia inicial; solo se auditan cambios reales.
+                            if (ultimoEstadoFisico != null && ultimoEstadoFisico != estado.abierta) {
                                 SecurityManager.logEvent("WEMOS",
                                     if (estado.abierta) "BARRERA_ABIERTA" else "BARRERA_CERRADA",
                                     "Estado recibido desde hardware. Motivo: ${estado.motivo}", true)
@@ -194,9 +197,20 @@ class MainActivity : AppCompatActivity() {
                                     estado.abierta,
                                     estado.motivo,
                                     estado.distancia,
-                                    estado.luz
+                                    estado.luz,
+                                    operadorActual
                                 )
-                                ultimoEstadoFisico = estado.abierta
+                            }
+                            ultimoEstadoFisico = estado.abierta
+
+                            // Si hay conexión Firebase, intenta vaciar la cola local.
+                            FirebaseEventSync.sincronizarPendientes(applicationContext) { ok, mensaje ->
+                                runOnUiThread {
+                                    if (!isFinishing && !isDestroyed && ok) {
+                                        tvEstado.text = "WeMos OK | ${estado.barrera.uppercase()} | ${estado.modo.uppercase()}\\n" +
+                                            "Motivo: ${estado.motivo} | Firebase: ${mensaje}"
+                                    }
+                                }
                             }
                         } else {
                             tvWirelessStatus.text = "Estado: WEMOS SIN CONEXIÓN"

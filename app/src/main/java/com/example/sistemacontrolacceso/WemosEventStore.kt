@@ -19,7 +19,14 @@ object WemosEventStore {
     private const val MAX_EVENTS = 200
 
     @Synchronized
-    fun registrarCambio(context: Context, abierta: Boolean, motivo: String, distancia: Int, luz: Int) {
+    fun registrarCambio(
+        context: Context,
+        abierta: Boolean,
+        motivo: String,
+        distancia: Int,
+        luz: Int,
+        operador: String = "desconocido"
+    ) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val events = JSONArray(prefs.getString(KEY_EVENTS, "[]") ?: "[]")
         val item = JSONObject()
@@ -29,6 +36,7 @@ object WemosEventStore {
             .put("evento", motivo)
             .put("distancia", distancia)
             .put("luz", luz)
+            .put("operador", operador)
             .put("sincronizado", false)
         events.put(item)
         val bounded = JSONArray()
