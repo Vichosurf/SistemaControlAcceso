@@ -1,6 +1,7 @@
 package com.example.sistemacontrolacceso
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
@@ -270,6 +271,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @SuppressLint("MissingPermission")
     private fun obtenerUbicacionGPS() {
         try {
             val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -567,6 +569,23 @@ class MainActivity : AppCompatActivity() {
                 isAlert = true
             )
         }
+
+        // Sincronización en tiempo real con hardware físico WeMos D1 (LED Rojo/Verde + Servo)
+        if (lastAlertState != esAlerta) {
+            if (::etIpWemos.isInitialized) {
+                val ipWemos = etIpWemos.text.toString().trim()
+                if (ipWemos.isNotEmpty()) {
+                    val comando = if (esAlerta) "abrir" else "cerrar"
+                    wemos.enviarComando(ipWemos, comando) { _, mensaje ->
+                        runOnUiThread {
+                            if (::tvEstado.isInitialized) {
+                                tvEstado.text = mensaje
+                            }
+                        }
+                    }
+                }
+            }
+        }
         lastAlertState = esAlerta
 
         actualizarUIEstado(esAlerta, distancia, luz, isEmergencyActive)
@@ -586,12 +605,12 @@ class MainActivity : AppCompatActivity() {
             cardStatus.strokeColor = ContextCompat.getColor(this, R.color.state_alert_stroke)
 
             // LED Rojo ON, Verde OFF
-            ledRed.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.led_red_on))
+            ViewCompat.setBackgroundTintList(ledRed, ColorStateList.valueOf(ContextCompat.getColor(this, R.color.led_red_on)))
             tvLedRedLabel.text = "LED Rojo (ON)"
             tvLedRedLabel.setTextColor(headerColor)
             tvLedRedLabel.setTypeface(null, Typeface.BOLD)
 
-            ledGreen.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.led_green_off))
+            ViewCompat.setBackgroundTintList(ledGreen, ColorStateList.valueOf(ContextCompat.getColor(this, R.color.led_green_off)))
             tvLedGreenLabel.text = "LED Verde (OFF)"
             tvLedGreenLabel.setTextColor(ContextCompat.getColor(this, R.color.text_muted))
             tvLedGreenLabel.setTypeface(null, Typeface.NORMAL)
@@ -610,12 +629,12 @@ class MainActivity : AppCompatActivity() {
             cardStatus.strokeColor = ContextCompat.getColor(this, R.color.state_normal_stroke)
 
             // LED Verde ON, Rojo OFF
-            ledGreen.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.led_green_on))
+            ViewCompat.setBackgroundTintList(ledGreen, ColorStateList.valueOf(ContextCompat.getColor(this, R.color.led_green_on)))
             tvLedGreenLabel.text = "LED Verde (ON)"
             tvLedGreenLabel.setTextColor(headerColor)
             tvLedGreenLabel.setTypeface(null, Typeface.BOLD)
 
-            ledRed.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.led_red_off))
+            ViewCompat.setBackgroundTintList(ledRed, ColorStateList.valueOf(ContextCompat.getColor(this, R.color.led_red_off)))
             tvLedRedLabel.text = "LED Rojo (OFF)"
             tvLedRedLabel.setTextColor(ContextCompat.getColor(this, R.color.text_muted))
             tvLedRedLabel.setTypeface(null, Typeface.NORMAL)
