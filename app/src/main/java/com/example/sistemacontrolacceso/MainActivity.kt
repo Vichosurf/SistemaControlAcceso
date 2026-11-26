@@ -147,8 +147,7 @@ class MainActivity : AppCompatActivity() {
         clockHandler.post(clockRunnable)
         obtenerUbicacionGPS()
 
-        // Evaluación inicial
-        evaluarSistema()
+        // Se espera la primera lectura real del Arduino; no se simulan sensores.
     }
 
     override fun onDestroy() {
@@ -176,6 +175,8 @@ class MainActivity : AppCompatActivity() {
         seekBarLight = findViewById(R.id.seekBarLight)
         tvDistanceValue = findViewById(R.id.tvDistanceValue)
         tvLightValue = findViewById(R.id.tvLightValue)
+        seekBarDistance.isEnabled = false
+        seekBarLight.isEnabled = false
         tvThresholdDistanceLabel = findViewById(R.id.tvThresholdDistanceLabel)
         tvThresholdLightLabel = findViewById(R.id.tvThresholdLightLabel)
 
@@ -350,7 +351,8 @@ class MainActivity : AppCompatActivity() {
             },
             onFrameReceived = { frame ->
                 runOnUiThread {
-                    tvWirelessFrameLog.text = "[RX] Seq:#${frame.seqNum} | Cmd:${frame.command} | Checksum:${frame.checksum} (OK)"
+                    tvWirelessFrameLog.text = "[RX] Seq:#${frame.seqNum} | Cmd:${frame.command} | ${frame.payload}"
+                    actualizarDesdeArduino(frame.payload)
                 }
             },
             onMetricsUpdated = { metrics ->
@@ -378,72 +380,43 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnSendWirelessCmd.setOnClickListener {
-            val cmd = etCommandPayload.text.toString().ifBlank { "CMD_OVERRIDE" }
-            val sent = wirelessManager.sendFrame(cmd, "mode=MANUAL_TRIGGER")
-            if (sent) {
-                Toast.makeText(this, "Comando enviado inalámbricamente.", Toast.LENGTH_SHORT).show()
+            val payload = "mode=OPEN;distanceThreshold=$umbralDistancia;lightThreshold=$umbralLuz;emergency=0"
+            if (wirelessManager.sendFrame("SET_CONFIG", payload)) {
+                Toast.makeText(this, "Orden de apertura enviada al Arduino.", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(this, "Conecte primero el gestor inalámbrico.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Conecte primero Firebase/Wemos.", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
     private fun configurarListenersMonitoreo() {
-        seekBarDistance.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                tvDistanceValue.text = "$progress cm"
-                evaluarSistema()
-            }
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
-
-        seekBarLight.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                tvLightValue.text = progress.toString()
-                evaluarSistema()
-            }
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
+        // Indicadores de solo lectura: los datos proceden del Arduino Uno.
+        seekBarDistance.isEnabled = false
+        seekBarLight.isEnabled = false
     }
 
     private fun configurarListenersActivador() {
-        rgOperationMode.setOnCheckedChangeListener { _, _ -> evaluarSistema() }
-        switchEmergency.setOnCheckedChangeListener { _, isChecked ->
-            SecurityManager.logEvent("OPERATOR", "EMERGENCY_SWITCH", "Switch Anulación Emergencia = $isChecked", true)
-
-            if (lastEmergencyState != isChecked) {
-                lastEmergencyState = isChecked
-                NotificationHelper.sendNotification(
-                    context = this,
-                    notificationId = 2002,
-                    title = if (isChecked) "⚠️ Emergencia Activada" else "✅ Emergencia Desactivada",
-                    message = if (isChecked) "Inhabilitación de barrera activada manualmente." else "Modo de operación normal restablecido.",
-                    isAlert = isChecked
-                )
-            }
-
-            evaluarSistema()
+        rgOperationMode.setOnCheckedChangeListener { _, _ -> enviarConfiguracionArduino() }
+        switchEmergency.setOnCheckedChangeListener { _, checked ->
+            SecurityManager.logEvent("OPERATOR", "EMERGENCY_SWITCH", "Anulación solicitada = $checked", true)
+            enviarConfiguracionArduino()
         }
-
         seekBarThresholdDist.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                umbralDistancia = progress
-                tvThresholdDistCalib.text = "Umbral Distancia: $progress cm"
-                tvThresholdDistanceLabel.text = "Umbral configurado: < $progress cm"
-                evaluarSistema()
+                umbralDistancia = progress.coerceAtLeast(2)
+                tvThresholdDistCalib.text = "Umbral Distancia: $umbralDistancia cm"
+                tvThresholdDistanceLabel.text = "Umbral configurado: < $umbralDistancia cm"
+                if (fromUser) enviarConfiguracionArduino()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
-
         seekBarThresholdLight.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 umbralLuz = progress
                 tvThresholdLightCalib.text = "Umbral Luz: $progress ADC"
                 tvThresholdLightLabel.text = "Umbral configurado: Oscuridad < $progress"
-                evaluarSistema()
+                if (fromUser) enviarConfiguracionArduino()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
@@ -545,6 +518,39 @@ class MainActivity : AppCompatActivity() {
                 "Condiciones no cumplidas (Distancia: $distancia cm, Luz: $luz)."
             }
         }
+    }
+
+    private fun enviarConfiguracionArduino() {
+        if (!::wirelessManager.isInitialized) return
+        val mode = when (rgOperationMode.checkedRadioButtonId) {
+            R.id.rbModeForcedOpen -> "OPEN"
+            R.id.rbModeForcedClosed -> "CLOSED"
+            else -> "AUTO"
+        }
+        val emergency = if (switchEmergency.isChecked) 1 else 0
+        val payload = "mode=$mode;distanceThreshold=$umbralDistancia;lightThreshold=$umbralLuz;emergency=$emergency"
+        if (!wirelessManager.sendFrame("SET_CONFIG", payload)) {
+            Toast.makeText(this, "Conecta primero Firebase/Wemos.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun actualizarDesdeArduino(payload: String) {
+        val values = payload.split(";").mapNotNull {
+            val part = it.split("=", limit = 2)
+            if (part.size == 2) part[0] to part[1] else null
+        }.toMap()
+        val distance = values["distancia"]?.toIntOrNull() ?: return
+        val light = values["luz"]?.toIntOrNull() ?: return
+        val angle = values["angulo"]?.toIntOrNull() ?: 0
+        val emergency = values["emergencia"].equals("true", true) || values["emergencia"] == "1"
+        val mode = values["modo"] ?: "AUTO"
+        seekBarDistance.progress = distance.coerceIn(0, seekBarDistance.max)
+        seekBarLight.progress = light.coerceIn(0, seekBarLight.max)
+        tvDistanceValue.text = "$distance cm"
+        tvLightValue.text = light.toString()
+        actualizarUIEstado(angle == 90, distance, light, emergency)
+        tvServoState.text = "Servomotor: $angle°"
+        tvLogicDescription.text = "Arduino Uno · modo $mode · distancia $distance cm · luz $light ADC"
     }
 
     private fun mostrarDialogoAuditoria() {
